@@ -690,11 +690,53 @@ const CreateInvoice = () => {
                     <td className="py-2 px-2">
                       {/* Searchable Item Dropdown */}
                       <div className="relative">
+                        {/* Search Input */}
                         <input
                           type="text"
                           placeholder="Search & select item..."
                           className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                           style={{ minWidth: '150px' }}
+                          value={(() => {
+                            const selectedItem = items.find(i => i._id === item.itemId);
+                            return selectedItem ? selectedItem.itemName : '';
+                          })()}
+                          onChange={(e) => {
+                            const searchValue = e.target.value;
+                            // If user clears the input, clear the selection
+                            if (!searchValue) {
+                              handleItemChange(index, 'itemId', '');
+                            }
+                            
+                            // Show dropdown when typing
+                            const dropdown = document.getElementById(`item-dropdown-${index}`);
+                            if (dropdown) {
+                              dropdown.style.display = 'block';
+                              
+                              // Filter options based on search
+                              const options = dropdown.querySelectorAll('.item-option');
+                              let hasMatch = false;
+                              
+                              options.forEach(option => {
+                                const text = option.textContent.toLowerCase();
+                                const matches = text.includes(searchValue.toLowerCase());
+                                option.style.display = matches ? 'block' : 'none';
+                                if (matches && !option.classList.contains('add-new-option')) {
+                                  hasMatch = true;
+                                }
+                              });
+                              
+                              // Show/hide "Add New" option based on search
+                              const addNewOption = dropdown.querySelector('.add-new-option');
+                              if (addNewOption) {
+                                if (searchValue && !hasMatch) {
+                                  addNewOption.style.display = 'block';
+                                  addNewOption.innerHTML = `➕ Add New Item: "${searchValue}"`;
+                                } else {
+                                  addNewOption.style.display = 'none';
+                                }
+                              }
+                            }
+                          }}
                           onFocus={() => {
                             // Show dropdown when focused
                             const dropdown = document.getElementById(`item-dropdown-${index}`);
@@ -707,22 +749,6 @@ const CreateInvoice = () => {
                               if (dropdown) dropdown.style.display = 'none';
                             }, 200);
                           }}
-                          onChange={(e) => {
-                            const searchTerm = e.target.value.toLowerCase();
-                            const dropdown = document.getElementById(`item-dropdown-${index}`);
-                            if (dropdown) {
-                              const options = dropdown.querySelectorAll('.item-option');
-                              options.forEach(option => {
-                                const text = option.textContent.toLowerCase();
-                                option.style.display = text.includes(searchTerm) ? 'block' : 'none';
-                              });
-                            }
-                          }}
-                          value={(() => {
-                            const selectedItem = items.find(i => i._id === item.itemId);
-                            return selectedItem ? selectedItem.itemName : '';
-                          })()}
-                          readOnly={item.itemId ? true : false}
                         />
                         
                         {/* Dropdown Options */}
@@ -746,7 +772,8 @@ const CreateInvoice = () => {
                             </div>
                           ))}
                           <div
-                            className="item-option px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm bg-blue-50 text-blue-700 font-medium"
+                            className="item-option add-new-option px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm bg-blue-50 text-blue-700 font-medium"
+                            style={{ display: 'none' }}
                             onClick={() => {
                               setCurrentItemIndex(index);
                               setShowAddItemModal(true);
@@ -773,11 +800,53 @@ const CreateInvoice = () => {
                     <td className="py-2 px-2">
                       {/* Searchable Customer Dropdown */}
                       <div className="relative">
+                        {/* Search Input */}
                         <input
                           type="text"
                           placeholder="Search & select customer..."
                           className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                           style={{ minWidth: '180px' }}
+                          value={(() => {
+                            const selectedCustomer = customers.find(c => c._id === item.customerId);
+                            return selectedCustomer ? selectedCustomer.customerName : '';
+                          })()}
+                          onChange={(e) => {
+                            const searchValue = e.target.value;
+                            // If user clears the input, clear the selection
+                            if (!searchValue) {
+                              handleItemChange(index, 'customerId', '');
+                            }
+                            
+                            // Show dropdown when typing
+                            const dropdown = document.getElementById(`customer-dropdown-${index}`);
+                            if (dropdown) {
+                              dropdown.style.display = 'block';
+                              
+                              // Filter options based on search
+                              const options = dropdown.querySelectorAll('.customer-option');
+                              let hasMatch = false;
+                              
+                              options.forEach(option => {
+                                const text = option.textContent.toLowerCase();
+                                const matches = text.includes(searchValue.toLowerCase());
+                                option.style.display = matches ? 'block' : 'none';
+                                if (matches && !option.classList.contains('add-new-option')) {
+                                  hasMatch = true;
+                                }
+                              });
+                              
+                              // Show/hide "Add New" option based on search
+                              const addNewOption = dropdown.querySelector('.add-new-customer-option');
+                              if (addNewOption) {
+                                if (searchValue && !hasMatch) {
+                                  addNewOption.style.display = 'block';
+                                  addNewOption.innerHTML = `➕ Add New Customer: "${searchValue}"`;
+                                } else {
+                                  addNewOption.style.display = 'none';
+                                }
+                              }
+                            }
+                          }}
                           onFocus={() => {
                             // Show dropdown when focused
                             const dropdown = document.getElementById(`customer-dropdown-${index}`);
@@ -790,22 +859,6 @@ const CreateInvoice = () => {
                               if (dropdown) dropdown.style.display = 'none';
                             }, 200);
                           }}
-                          onChange={(e) => {
-                            const searchTerm = e.target.value.toLowerCase();
-                            const dropdown = document.getElementById(`customer-dropdown-${index}`);
-                            if (dropdown) {
-                              const options = dropdown.querySelectorAll('.customer-option');
-                              options.forEach(option => {
-                                const text = option.textContent.toLowerCase();
-                                option.style.display = text.includes(searchTerm) ? 'block' : 'none';
-                              });
-                            }
-                          }}
-                          value={(() => {
-                            const selectedCustomer = customers.find(c => c._id === item.customerId);
-                            return selectedCustomer ? selectedCustomer.customerName : '';
-                          })()}
-                          readOnly={item.customerId ? true : false}
                         />
                         
                         {/* Dropdown Options */}
@@ -829,7 +882,8 @@ const CreateInvoice = () => {
                             </div>
                           ))}
                           <div
-                            className="customer-option px-3 py-2 hover:bg-green-50 cursor-pointer text-sm bg-green-50 text-green-700 font-medium"
+                            className="customer-option add-new-customer-option px-3 py-2 hover:bg-green-50 cursor-pointer text-sm bg-green-50 text-green-700 font-medium"
+                            style={{ display: 'none' }}
                             onClick={() => {
                               setCurrentItemIndex(index);
                               setShowAddCustomerModal(true);
@@ -945,18 +999,31 @@ const CreateInvoice = () => {
               
               {/* Right Column - Action Buttons */}
               <div className="flex flex-col justify-center space-y-4">
-                <Button
-                  onClick={handleSave}
-                  variant="outline"
-                  disabled={loading}
-                >
-                  <Save className="w-5 h-5 mr-2" />
-                  Create Invoice & Another Invoice
-                </Button>
+                <div className="flex space-x-4">
+                  <Button
+                    onClick={handleSave}
+                    variant="outline"
+                    disabled={loading}
+                    className="flex-1"
+                  >
+                    <Save className="w-5 h-5 mr-2" />
+                    Create Invoice & Another Invoice
+                  </Button>
+                  
+                  <Button
+                    onClick={handleSave}
+                    disabled={loading}
+                    className="flex-1"
+                  >
+                    <Save className="w-5 h-5 mr-2" />
+                    Create Invoice & Another Invoice
+                  </Button>
+                </div>
                 
                 <Button
                   onClick={handleSubmit}
                   disabled={loading}
+                  className="w-full"
                 >
                   {loading ? (
                     <>
