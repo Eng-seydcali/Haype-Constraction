@@ -19,7 +19,7 @@ const SearchableDropdown = ({
 
   // Filter options based on search term
   useEffect(() => {
-    if (!searchTerm) {
+    if (!searchTerm.trim()) {
       setFilteredOptions(options);
     } else {
       const filtered = options.filter(option =>
@@ -44,8 +44,14 @@ const SearchableDropdown = ({
 
   const handleInputClick = () => {
     if (!disabled) {
-      setIsOpen(!isOpen);
+      setIsOpen(true);
       setSearchTerm('');
+      // Focus the input when opening
+      setTimeout(() => {
+        if (inputRef.current) {
+          inputRef.current.focus();
+        }
+      }, 100);
     }
   };
 
@@ -68,8 +74,8 @@ const SearchableDropdown = ({
   };
 
   const handleAddNew = () => {
-    if (onAddNew && searchTerm) {
-      onAddNew(searchTerm);
+    if (onAddNew && searchTerm.trim()) {
+      onAddNew(searchTerm.trim());
       setIsOpen(false);
       setSearchTerm('');
     }
@@ -79,12 +85,14 @@ const SearchableDropdown = ({
     option.label.toLowerCase() === searchTerm.toLowerCase()
   );
 
+  const showAddNew = onAddNew && searchTerm.trim() && !hasExactMatch;
+
   return (
     <div className="relative" ref={dropdownRef} style={{ minWidth: width }}>
       {/* Main Input */}
       <div 
         className={`
-          flex items-center w-full border border-gray-300 rounded px-2 py-1 text-sm bg-white cursor-pointer
+          flex items-center w-full border border-gray-300 rounded px-3 py-2 text-sm bg-white cursor-pointer
           ${disabled ? 'bg-gray-100 cursor-not-allowed' : 'hover:border-gray-400'}
           ${isOpen ? 'ring-2 ring-blue-500 border-blue-500' : ''}
         `}
@@ -92,16 +100,22 @@ const SearchableDropdown = ({
       >
         <Search className="w-4 h-4 text-gray-400 mr-2 flex-shrink-0" />
         
-        <input
-          ref={inputRef}
-          type="text"
-          className="flex-1 outline-none bg-transparent text-sm"
-          placeholder={value || placeholder}
-          value={isOpen ? searchTerm : (value || '')}
-          onChange={handleSearchChange}
-          disabled={disabled}
-          onFocus={() => !disabled && setIsOpen(true)}
-        />
+        {isOpen ? (
+          <input
+            ref={inputRef}
+            type="text"
+            className="flex-1 outline-none bg-transparent text-sm"
+            placeholder={placeholder}
+            value={searchTerm}
+            onChange={handleSearchChange}
+            disabled={disabled}
+            autoFocus
+          />
+        ) : (
+          <span className={`flex-1 text-sm ${value ? 'text-gray-900' : 'text-gray-500'}`}>
+            {value || placeholder}
+          </span>
+        )}
         
         <div className="flex items-center space-x-1">
           {value && !disabled && (
@@ -134,14 +148,18 @@ const SearchableDropdown = ({
                 )}
               </div>
             ))
+          ) : searchTerm.trim() ? (
+            <div className="px-3 py-2 text-gray-500 text-sm">
+              No results found for "{searchTerm}"
+            </div>
           ) : (
             <div className="px-3 py-2 text-gray-500 text-sm">
-              No results found
+              Type to search...
             </div>
           )}
 
           {/* Add New Option */}
-          {onAddNew && searchTerm && !hasExactMatch && (
+          {showAddNew && (
             <div
               className="px-3 py-2 hover:bg-green-50 cursor-pointer border-t border-gray-200 bg-green-50"
               onClick={handleAddNew}

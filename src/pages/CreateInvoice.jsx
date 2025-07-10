@@ -691,7 +691,7 @@ const CreateInvoice = () => {
                     <td className="py-2 px-2">
                       {/* Searchable Item Dropdown - Like the image */}
                       <SearchableDropdown
-                        placeholder="Search items..."
+                        placeholder="Search & select item..."
                         value={(() => {
                           const selectedItem = items.find(i => i._id === item.itemId);
                           return selectedItem ? selectedItem.itemName : '';
@@ -699,8 +699,7 @@ const CreateInvoice = () => {
                         options={items.map(itm => ({
                           id: itm._id,
                           label: itm.itemName,
-                          subtitle: `Price: $${itm.price}`,
-                          data: itm
+                          subtitle: `Price: $${itm.price || 0}`
                         }))}
                         onSelect={(selectedItem) => {
                           if (selectedItem) {
@@ -715,13 +714,13 @@ const CreateInvoice = () => {
                           setShowAddItemModal(true);
                         }}
                         addNewText="Add New Item"
-                        width="150px"
+                        width="180px"
                       />
                     </td>
                     <td className="py-2 px-2">
                       {/* Searchable Customer Dropdown - Like the image */}
                       <SearchableDropdown
-                        placeholder="Search customers..."
+                        placeholder="Search & select customer..."
                         value={(() => {
                           const selectedCustomer = customers.find(c => c._id === item.customerId);
                           return selectedCustomer ? selectedCustomer.customerName : '';
@@ -729,8 +728,7 @@ const CreateInvoice = () => {
                         options={customers.map(customer => ({
                           id: customer._id,
                           label: customer.customerName,
-                          subtitle: `Balance: $${(customer.balance || 0).toLocaleString()}`,
-                          data: customer
+                          subtitle: `Balance: $${(customer.balance || 0).toLocaleString()}`
                         }))}
                         onSelect={(selectedCustomer) => {
                           if (selectedCustomer) {
@@ -745,7 +743,7 @@ const CreateInvoice = () => {
                           setShowAddCustomerModal(true);
                         }}
                         addNewText="Add New Customer"
-                        width="180px"
+                        width="200px"
                       />
                     </td>
                     <td className="py-2 px-2">
