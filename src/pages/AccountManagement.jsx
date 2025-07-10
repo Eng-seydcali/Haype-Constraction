@@ -198,14 +198,20 @@ const AccountManagement = () => {
       return;
     }
 
-    console.log('Generating report:', {
-      type: selectedReportType,
-      account: selectedAccount,
-      month: selectedMonth
-    });
-
+    // Navigate to the appropriate report page
     const accountName = getAccountOptions().find(opt => opt.value === selectedAccount)?.label;
-    showSuccess('Report Generated', `${selectedReportType} report for ${accountName} (${selectedMonth}) generated successfully!`);
+    
+    if (selectedReportType === 'car') {
+      // Navigate to Car Reports with parameters
+      const url = `/car-reports?carId=${selectedAccount}&month=${selectedMonth}&carName=${encodeURIComponent(accountName)}`;
+      window.open(url, '_blank');
+    } else if (selectedReportType === 'customer') {
+      // Navigate to Customer Reports with parameters  
+      const url = `/customers/reports?customerId=${selectedAccount}&month=${selectedMonth}&customerName=${encodeURIComponent(accountName)}`;
+      window.open(url, '_blank');
+    }
+    
+    showSuccess('Report Generated', `${selectedReportType} report for ${accountName} (${selectedMonth}) opened in new tab!`);
   };
 
   const calculateMonthlyProfit = () => {
@@ -725,7 +731,10 @@ const AccountManagement = () => {
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <div className="flex items-center mb-4">
           <FileText className="w-6 h-6 text-green-600 mr-2" />
-          <h2 className="text-xl font-semibold text-gray-900">Generate Reports</h2>
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900">Generate Detailed Reports</h2>
+            <p className="text-sm text-gray-600">Generate comprehensive reports for cars or customers with transaction details</p>
+          </div>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
@@ -781,8 +790,19 @@ const AccountManagement = () => {
           disabled={!selectedReportType || !selectedAccount || !selectedMonth}
         >
           <Download className="w-5 h-5 mr-2" />
-          Generate Report
+          Generate & Open Report
         </Button>
+        
+        <div className="mt-4 bg-green-50 border border-green-200 rounded-lg p-4">
+          <h4 className="font-medium text-green-900 mb-2">📊 Report Features</h4>
+          <ul className="text-green-800 text-sm space-y-1">
+            <li>• <strong>Car Reports:</strong> Detailed transaction history, item breakdown, profit analysis</li>
+            <li>• <strong>Customer Reports:</strong> Purchase history, payment records, balance tracking</li>
+            <li>• <strong>Monthly Data:</strong> Filter by specific monthly accounts (active or closed)</li>
+            <li>• <strong>Print Ready:</strong> Professional format suitable for printing and sharing</li>
+            <li>• <strong>Export Options:</strong> Download as PDF or print directly from browser</li>
+          </ul>
+        </div>
       </div>
 
       {/* Account Status Overview */}

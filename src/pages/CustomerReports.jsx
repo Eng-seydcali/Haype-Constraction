@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Building2, Calendar, Printer, User, ChevronDown, ChevronRight, Eye, Edit, Filter } from 'lucide-react';
 import Button from '../components/Button';
 import { customersAPI, invoicesAPI } from '../services/api';
@@ -9,6 +10,7 @@ import Footer from '../components/Footer';
 
 const CustomerReports = () => {
   const { showError } = useToast();
+  const [searchParams] = useSearchParams();
   const [selectedCustomer, setSelectedCustomer] = useState('');
   const [dateRange, setDateRange] = useState({
     from: startOfMonth(new Date()),
@@ -24,6 +26,27 @@ const CustomerReports = () => {
   // Load data from database
   useEffect(() => {
     loadCustomers();
+    
+    // Check for URL parameters from Account Management
+    const customerId = searchParams.get('customerId');
+    const month = searchParams.get('month');
+    const customerName = searchParams.get('customerName');
+    
+    if (customerId) {
+      setSelectedCustomer(customerId);
+    }
+    
+    if (month) {
+      // Set date range based on month parameter
+      const [year, monthNum] = month.split('-');
+      const startDate = new Date(parseInt(year), parseInt(monthNum) - 1, 1);
+      const endDate = new Date(parseInt(year), parseInt(monthNum), 0);
+      
+      setDateRange({
+        from: startDate,
+        to: endDate
+      });
+    }
   }, []);
 
   // Load report data when customer or date range changes

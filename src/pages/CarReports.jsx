@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Building2, Calendar, Printer, Car, ChevronDown, ChevronRight, Eye, Edit, Filter } from 'lucide-react';
 import Button from '../components/Button';
 import { carsAPI, invoicesAPI } from '../services/api';
@@ -10,6 +11,7 @@ import InvoiceModal from '../components/InvoiceModal';
 
 const CarReports = () => {
   const { showError } = useToast();
+  const [searchParams] = useSearchParams();
   const [selectedCar, setSelectedCar] = useState('');
   const [dateRange, setDateRange] = useState({
     from: startOfMonth(new Date()),
@@ -28,6 +30,27 @@ const CarReports = () => {
   // Load data from database
   useEffect(() => {
     loadCars();
+    
+    // Check for URL parameters from Account Management
+    const carId = searchParams.get('carId');
+    const month = searchParams.get('month');
+    const carName = searchParams.get('carName');
+    
+    if (carId) {
+      setSelectedCar(carId);
+    }
+    
+    if (month) {
+      // Set date range based on month parameter
+      const [year, monthNum] = month.split('-');
+      const startDate = new Date(parseInt(year), parseInt(monthNum) - 1, 1);
+      const endDate = new Date(parseInt(year), parseInt(monthNum), 0);
+      
+      setDateRange({
+        from: startDate,
+        to: endDate
+      });
+    }
   }, []);
 
   // Load report data when car or date range changes
