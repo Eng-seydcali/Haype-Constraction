@@ -269,6 +269,16 @@ const Payments = () => {
       const response = await paymentsAPI.paymentOut(paymentData);
       console.log('✅ Payment processed:', response.data);
       
+      // Add payment amount to car left amount
+      const selectedCar = cars.find(car => car._id === paymentOutFormData.carId);
+      if (selectedCar) {
+        const newCarLeft = (selectedCar.left || 0) + parseFloat(paymentOutFormData.amount);
+        await carsAPI.update(paymentOutFormData.carId, { 
+          left: newCarLeft 
+        });
+        console.log(`✅ Car ${selectedCar.carName} left amount updated: +$${paymentOutFormData.amount} = $${newCarLeft}`);
+      }
+      
       const selectedCar = cars.find(car => car._id === paymentOutFormData.carId);
       const selectedCategory = categories.find(cat => cat.value === paymentOutFormData.category);
       const selectedMonth = accountMonths.find(month => month.value === paymentOutFormData.accountMonth);

@@ -191,17 +191,19 @@ const AccountManagement = () => {
   };
 
   const calculateMonthlyProfit = () => {
-    // Calculate profit from car balances minus car left amounts and payments
+    // Calculate profit: Car Balance - Car Left - Car Payments = Profit
     const totalCarBalance = cars.reduce((sum, car) => sum + (car.balance || 0), 0);
     const totalCarLeft = cars.reduce((sum, car) => sum + (car.left || 0), 0);
+    const totalCarPayments = cars.reduce((sum, car) => sum + (car.payments || 0), 0);
     
-    // Profit = (Car Balance - Car Left - Car Payments) * profit margin
-    const netAmount = totalCarBalance - totalCarLeft;
-    const estimatedProfit = netAmount * 0.15; // 15% profit margin
+    // Profit = Car Balance - Car Left - Car Payments (no percentage)
+    const netAmount = totalCarBalance - totalCarLeft - totalCarPayments;
+    const estimatedProfit = netAmount; // Direct calculation, no percentage
     
     return {
       totalCarBalance,
       totalCarLeft,
+      totalCarPayments,
       netAmount,
       estimatedProfit
     };
@@ -216,12 +218,14 @@ const AccountManagement = () => {
       `Current Financial Summary:\n` +
       `• Total Car Balance: $${profitData.totalCarBalance.toLocaleString()}\n` +
       `• Total Car Left: $${profitData.totalCarLeft.toLocaleString()}\n` +
+      `• Total Car Payments: $${profitData.totalCarPayments.toLocaleString()}\n` +
       `• Net Amount: $${profitData.netAmount.toLocaleString()}\n` +
-      `• Estimated Profit: $${profitData.estimatedProfit.toLocaleString()}\n\n` +
+      `• Final Profit: $${profitData.estimatedProfit.toLocaleString()}\n\n` +
       `Actions that will be performed:\n` +
-      `• Calculate and record final profit for ${currentMonthLabel}\n` +
+      `• Calculate final profit: Balance - Left - Payments = $${profitData.estimatedProfit.toLocaleString()}\n` +
       `• Reset all car balances to $0\n` +
       `• Reset all car left amounts to $0\n` +
+      `• Reset all car payments to $0\n` +
       `• Archive current month's data\n` +
       `• Create new monthly accounts for next month\n\n` +
       `⚠️ This action cannot be undone!\n\n` +
@@ -242,7 +246,8 @@ const AccountManagement = () => {
         for (const car of cars) {
           await carsAPI.update(car._id, { 
             balance: 0,
-            left: 0
+            left: 0,
+            payments: 0
           });
         }
         
@@ -276,7 +281,7 @@ const AccountManagement = () => {
         
         showSuccess(
           'Monthly Closing Complete', 
-          `${currentMonthLabel} has been closed successfully!\n\nProfit Calculated: $${profitData.estimatedProfit.toLocaleString()}\nAll car balances reset to $0\nNew accounts created for ${newMonthLabel}`
+          `${currentMonthLabel} has been closed successfully!\n\nProfit Formula: Balance - Left - Payments\nFinal Profit: $${profitData.estimatedProfit.toLocaleString()}\nAll car balances reset to $0\nNew accounts created for ${newMonthLabel}`
         );
         
         // Reload data
@@ -434,7 +439,7 @@ const AccountManagement = () => {
         </div>
 
         {/* Profit Preview */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mt-4">
           <div className="bg-white rounded-lg p-4 border border-blue-200">
             <p className="text-sm text-blue-700">Total Car Balance</p>
             <p className="text-xl font-bold text-blue-900">${profitData.totalCarBalance.toLocaleString()}</p>
@@ -444,11 +449,15 @@ const AccountManagement = () => {
             <p className="text-xl font-bold text-red-600">${profitData.totalCarLeft.toLocaleString()}</p>
           </div>
           <div className="bg-white rounded-lg p-4 border border-blue-200">
+            <p className="text-sm text-blue-700">Total Car Payments</p>
+            <p className="text-xl font-bold text-orange-600">${profitData.totalCarPayments.toLocaleString()}</p>
+          </div>
+          <div className="bg-white rounded-lg p-4 border border-blue-200">
             <p className="text-sm text-blue-700">Net Amount</p>
-            <p className="text-xl font-bold text-green-600">${profitData.netAmount.toLocaleString()}</p>
+            <p className="text-xl font-bold text-blue-600">${profitData.netAmount.toLocaleString()}</p>
           </div>
           <div className="bg-white rounded-lg p-4 border border-green-200">
-            <p className="text-sm text-green-700">Estimated Profit (15%)</p>
+            <p className="text-sm text-green-700">Final Profit</p>
             <p className="text-xl font-bold text-green-600">${profitData.estimatedProfit.toLocaleString()}</p>
           </div>
         </div>
@@ -466,8 +475,8 @@ const AccountManagement = () => {
             <div>
               <h4 className="font-medium text-orange-900">Important Notice</h4>
               <p className="text-orange-800 text-sm mt-1">
-                This will calculate final profit based on: (Car Balance - Car Left - Car Payments) and reset all car balances to $0 for the new month.
-                Profit calculation: Net Amount × 15% = ${profitData.estimatedProfit.toLocaleString()}
+                This will calculate final profit based on: Car Balance - Car Left - Car Payments = Profit (no percentage).
+                Current calculation: ${profitData.totalCarBalance.toLocaleString()} - ${profitData.totalCarLeft.toLocaleString()} - ${profitData.totalCarPayments.toLocaleString()} = ${profitData.estimatedProfit.toLocaleString()}
               </p>
             </div>
           </div>
@@ -833,7 +842,9 @@ const AccountManagement = () => {
         <h3 className="text-lg font-semibold text-blue-900 mb-2">Account Management Instructions</h3>
         <ul className="text-blue-800 space-y-1">
           <li>• <strong>Monthly Closing:</strong> Calculates profit from (Car Balance - Car Left) × 15% and resets all car balances to $0</li>
-          <li>• <strong>Profit Calculation:</strong> Only happens during monthly closing, not during invoice creation</li>
+          <li>• <strong>Monthly Closing:</strong> Calculates profit from Car Balance - Car Left - Car Payments = Profit (no percentage) and resets all car balances to $0</li>
+          <li>• <strong>Profit Formula:</strong> Car Balance - Car Left - Car Payments = Final Profit (direct calculation, no percentage)</li>
+          <li>• <strong>Car Payments:</strong> All payments made for car expenses are added to car left amount</li>
           <li>• <strong>Balance Reset:</strong> All car balances start from $0 each new month</li>
           <li>• <strong>Closed Account Management:</strong> View and reopen previously closed monthly accounts</li>
           <li>• <strong>Individual Account Closing:</strong> Close specific accounts when cars are sold or customers become inactive</li>
