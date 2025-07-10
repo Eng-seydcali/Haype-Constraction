@@ -4,6 +4,7 @@ import { ArrowLeft, Building2, ChevronLeft, ChevronRight, Save, Plus, Trash2 } f
 import Button from '../components/Button';
 import FormInput from '../components/FormInput';
 import FormSelect from '../components/FormSelect';
+import SearchableDropdown from '../components/SearchableDropdown';
 import { useToast } from '../contexts/ToastContext';
 import { invoicesAPI, carsAPI, itemsAPI, customersAPI } from '../services/api';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -688,224 +689,64 @@ const CreateInvoice = () => {
                 {invoiceItems.map((item, index) => (
                   <tr key={item.id} className="border-b border-gray-100">
                     <td className="py-2 px-2">
-                      {/* Searchable Item Dropdown */}
-                      <div className="relative">
-                        {/* Search Input */}
-                        <input
-                          type="text"
-                          placeholder="Search & select item..."
-                          className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                          style={{ minWidth: '150px' }}
-                          value={(() => {
-                            const selectedItem = items.find(i => i._id === item.itemId);
-                            return selectedItem ? selectedItem.itemName : '';
-                          })()}
-                          onChange={(e) => {
-                            const searchValue = e.target.value;
-                            // If user clears the input, clear the selection
-                            if (!searchValue) {
-                              handleItemChange(index, 'itemId', '');
-                            }
-                            
-                            // Show dropdown when typing
-                            const dropdown = document.getElementById(`item-dropdown-${index}`);
-                            if (dropdown) {
-                              dropdown.style.display = 'block';
-                              
-                              // Filter options based on search
-                              const options = dropdown.querySelectorAll('.item-option');
-                              let hasMatch = false;
-                              
-                              options.forEach(option => {
-                                const text = option.textContent.toLowerCase();
-                                const matches = text.includes(searchValue.toLowerCase());
-                                option.style.display = matches ? 'block' : 'none';
-                                if (matches && !option.classList.contains('add-new-option')) {
-                                  hasMatch = true;
-                                }
-                              });
-                              
-                              // Show/hide "Add New" option based on search
-                              const addNewOption = dropdown.querySelector('.add-new-option');
-                              if (addNewOption) {
-                                if (searchValue && !hasMatch) {
-                                  addNewOption.style.display = 'block';
-                                  addNewOption.innerHTML = `➕ Add New Item: "${searchValue}"`;
-                                } else {
-                                  addNewOption.style.display = 'none';
-                                }
-                              }
-                            }
-                          }}
-                          onFocus={() => {
-                            // Show dropdown when focused
-                            const dropdown = document.getElementById(`item-dropdown-${index}`);
-                            if (dropdown) dropdown.style.display = 'block';
-                          }}
-                          onBlur={(e) => {
-                            // Hide dropdown when focus lost (with delay for selection)
-                            setTimeout(() => {
-                              const dropdown = document.getElementById(`item-dropdown-${index}`);
-                              if (dropdown) dropdown.style.display = 'none';
-                            }, 200);
-                          }}
-                        />
-                        
-                        {/* Dropdown Options */}
-                        <div 
-                          id={`item-dropdown-${index}`}
-                          className="absolute z-10 w-full bg-white border border-gray-300 rounded-b max-h-40 overflow-y-auto shadow-lg"
-                          style={{ display: 'none', top: '100%' }}
-                        >
-                          {items.map(itm => (
-                            <div
-                              key={itm._id}
-                              className="item-option px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm border-b border-gray-100"
-                              onClick={() => {
-                                handleItemChange(index, 'itemId', itm._id);
-                                const dropdown = document.getElementById(`item-dropdown-${index}`);
-                                if (dropdown) dropdown.style.display = 'none';
-                              }}
-                            >
-                              <div className="font-medium">{itm.itemName}</div>
-                              <div className="text-xs text-gray-500">Price: ${itm.price}</div>
-                            </div>
-                          ))}
-                          <div
-                            className="item-option add-new-option px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm bg-blue-50 text-blue-700 font-medium"
-                            style={{ display: 'none' }}
-                            onClick={() => {
-                              setCurrentItemIndex(index);
-                              setShowAddItemModal(true);
-                              const dropdown = document.getElementById(`item-dropdown-${index}`);
-                              if (dropdown) dropdown.style.display = 'none';
-                            }}
-                          >
-                            ➕ Add New Item
-                          </div>
-                        </div>
-                        
-                        {/* Clear Selection Button */}
-                        {item.itemId && (
-                          <button
-                            type="button"
-                            className="absolute right-1 top-1 text-gray-400 hover:text-gray-600"
-                            onClick={() => handleItemChange(index, 'itemId', '')}
-                          >
-                            ✕
-                          </button>
-                        )}
-                      </div>
+                      {/* Searchable Item Dropdown - Like the image */}
+                      <SearchableDropdown
+                        placeholder="Search items..."
+                        value={(() => {
+                          const selectedItem = items.find(i => i._id === item.itemId);
+                          return selectedItem ? selectedItem.itemName : '';
+                        })()}
+                        options={items.map(itm => ({
+                          id: itm._id,
+                          label: itm.itemName,
+                          subtitle: `Price: $${itm.price}`,
+                          data: itm
+                        }))}
+                        onSelect={(selectedItem) => {
+                          if (selectedItem) {
+                            handleItemChange(index, 'itemId', selectedItem.id);
+                          } else {
+                            handleItemChange(index, 'itemId', '');
+                          }
+                        }}
+                        onAddNew={(searchTerm) => {
+                          setNewItemData(prev => ({ ...prev, itemName: searchTerm }));
+                          setCurrentItemIndex(index);
+                          setShowAddItemModal(true);
+                        }}
+                        addNewText="Add New Item"
+                        width="150px"
+                      />
                     </td>
                     <td className="py-2 px-2">
-                      {/* Searchable Customer Dropdown */}
-                      <div className="relative">
-                        {/* Search Input */}
-                        <input
-                          type="text"
-                          placeholder="Search & select customer..."
-                          className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                          style={{ minWidth: '180px' }}
-                          value={(() => {
-                            const selectedCustomer = customers.find(c => c._id === item.customerId);
-                            return selectedCustomer ? selectedCustomer.customerName : '';
-                          })()}
-                          onChange={(e) => {
-                            const searchValue = e.target.value;
-                            // If user clears the input, clear the selection
-                            if (!searchValue) {
-                              handleItemChange(index, 'customerId', '');
-                            }
-                            
-                            // Show dropdown when typing
-                            const dropdown = document.getElementById(`customer-dropdown-${index}`);
-                            if (dropdown) {
-                              dropdown.style.display = 'block';
-                              
-                              // Filter options based on search
-                              const options = dropdown.querySelectorAll('.customer-option');
-                              let hasMatch = false;
-                              
-                              options.forEach(option => {
-                                const text = option.textContent.toLowerCase();
-                                const matches = text.includes(searchValue.toLowerCase());
-                                option.style.display = matches ? 'block' : 'none';
-                                if (matches && !option.classList.contains('add-new-option')) {
-                                  hasMatch = true;
-                                }
-                              });
-                              
-                              // Show/hide "Add New" option based on search
-                              const addNewOption = dropdown.querySelector('.add-new-customer-option');
-                              if (addNewOption) {
-                                if (searchValue && !hasMatch) {
-                                  addNewOption.style.display = 'block';
-                                  addNewOption.innerHTML = `➕ Add New Customer: "${searchValue}"`;
-                                } else {
-                                  addNewOption.style.display = 'none';
-                                }
-                              }
-                            }
-                          }}
-                          onFocus={() => {
-                            // Show dropdown when focused
-                            const dropdown = document.getElementById(`customer-dropdown-${index}`);
-                            if (dropdown) dropdown.style.display = 'block';
-                          }}
-                          onBlur={(e) => {
-                            // Hide dropdown when focus lost (with delay for selection)
-                            setTimeout(() => {
-                              const dropdown = document.getElementById(`customer-dropdown-${index}`);
-                              if (dropdown) dropdown.style.display = 'none';
-                            }, 200);
-                          }}
-                        />
-                        
-                        {/* Dropdown Options */}
-                        <div 
-                          id={`customer-dropdown-${index}`}
-                          className="absolute z-10 w-full bg-white border border-gray-300 rounded-b max-h-40 overflow-y-auto shadow-lg"
-                          style={{ display: 'none', top: '100%' }}
-                        >
-                          {customers.map(customer => (
-                            <div
-                              key={customer._id}
-                              className="customer-option px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm border-b border-gray-100"
-                              onClick={() => {
-                                handleItemChange(index, 'customerId', customer._id);
-                                const dropdown = document.getElementById(`customer-dropdown-${index}`);
-                                if (dropdown) dropdown.style.display = 'none';
-                              }}
-                            >
-                              <div className="font-medium">{customer.customerName}</div>
-                              <div className="text-xs text-gray-500">Balance: ${(customer.balance || 0).toLocaleString()}</div>
-                            </div>
-                          ))}
-                          <div
-                            className="customer-option add-new-customer-option px-3 py-2 hover:bg-green-50 cursor-pointer text-sm bg-green-50 text-green-700 font-medium"
-                            style={{ display: 'none' }}
-                            onClick={() => {
-                              setCurrentItemIndex(index);
-                              setShowAddCustomerModal(true);
-                              const dropdown = document.getElementById(`customer-dropdown-${index}`);
-                              if (dropdown) dropdown.style.display = 'none';
-                            }}
-                          >
-                            ➕ Add New Customer
-                          </div>
-                        </div>
-                        
-                        {/* Clear Selection Button */}
-                        {item.customerId && (
-                          <button
-                            type="button"
-                            className="absolute right-1 top-1 text-gray-400 hover:text-gray-600"
-                            onClick={() => handleItemChange(index, 'customerId', '')}
-                          >
-                            ✕
-                          </button>
-                        )}
-                      </div>
+                      {/* Searchable Customer Dropdown - Like the image */}
+                      <SearchableDropdown
+                        placeholder="Search customers..."
+                        value={(() => {
+                          const selectedCustomer = customers.find(c => c._id === item.customerId);
+                          return selectedCustomer ? selectedCustomer.customerName : '';
+                        })()}
+                        options={customers.map(customer => ({
+                          id: customer._id,
+                          label: customer.customerName,
+                          subtitle: `Balance: $${(customer.balance || 0).toLocaleString()}`,
+                          data: customer
+                        }))}
+                        onSelect={(selectedCustomer) => {
+                          if (selectedCustomer) {
+                            handleItemChange(index, 'customerId', selectedCustomer.id);
+                          } else {
+                            handleItemChange(index, 'customerId', '');
+                          }
+                        }}
+                        onAddNew={(searchTerm) => {
+                          setNewCustomerData(prev => ({ ...prev, customerName: searchTerm }));
+                          setCurrentItemIndex(index);
+                          setShowAddCustomerModal(true);
+                        }}
+                        addNewText="Add New Customer"
+                        width="180px"
+                      />
                     </td>
                     <td className="py-2 px-2">
                       <input
