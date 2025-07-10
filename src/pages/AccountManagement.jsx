@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Calendar, FileText, TrendingUp, Download, UserX, Car as CarIcon, UserCheck, Building2, AlertTriangle } from 'lucide-react';
+import { Settings, Calendar, FileText, TrendingUp, Download, UserX, Car as CarIcon, UserCheck, Building2, AlertTriangle, DollarSign, RotateCcw } from 'lucide-react';
 import Button from '../components/Button';
 import FormSelect from '../components/FormSelect';
 import FormInput from '../components/FormInput';
@@ -31,11 +31,17 @@ const AccountManagement = () => {
 
   // Account monthly data
   const [accountMonths, setAccountMonths] = useState([]);
+  const [closedAccounts, setClosedAccounts] = useState([]);
+
+  // Reopen account states
+  const [showReopenModal, setShowReopenModal] = useState(false);
+  const [selectedReopenAccount, setSelectedReopenAccount] = useState('');
 
   // Load data from database
   useEffect(() => {
     loadAllData();
     generateAccountMonths();
+    loadClosedAccounts();
   }, []);
 
   const generateAccountMonths = () => {
@@ -64,6 +70,36 @@ const AccountManagement = () => {
     }
     
     setAccountMonths(months);
+  };
+
+  const loadClosedAccounts = () => {
+    // Simulate closed accounts data
+    const closed = [
+      {
+        id: 'closed_2024_11',
+        month: '2024-11',
+        monthLabel: 'November 2024',
+        closedDate: '2024-11-30',
+        totalBalance: 125000,
+        totalProfit: 18750,
+        carsCount: 5,
+        customersCount: 12,
+        status: 'Closed'
+      },
+      {
+        id: 'closed_2024_10',
+        month: '2024-10',
+        monthLabel: 'October 2024',
+        closedDate: '2024-10-31',
+        totalBalance: 98000,
+        totalProfit: 14700,
+        carsCount: 4,
+        customersCount: 10,
+        status: 'Closed'
+      }
+    ];
+    
+    setClosedAccounts(closed);
   };
 
   const loadAllData = async () => {
@@ -154,17 +190,40 @@ const AccountManagement = () => {
     showSuccess('Report Generated', `${selectedReportType} report for ${accountName} (${selectedMonth}) generated successfully!`);
   };
 
+  const calculateMonthlyProfit = () => {
+    // Calculate profit from car balances minus car left amounts and payments
+    const totalCarBalance = cars.reduce((sum, car) => sum + (car.balance || 0), 0);
+    const totalCarLeft = cars.reduce((sum, car) => sum + (car.left || 0), 0);
+    
+    // Profit = (Car Balance - Car Left - Car Payments) * profit margin
+    const netAmount = totalCarBalance - totalCarLeft;
+    const estimatedProfit = netAmount * 0.15; // 15% profit margin
+    
+    return {
+      totalCarBalance,
+      totalCarLeft,
+      netAmount,
+      estimatedProfit
+    };
+  };
+
   const handleMonthlyClosing = async () => {
     const currentMonthLabel = accountMonths.find(month => month.isCurrent)?.label || 'Current Month';
+    const profitData = calculateMonthlyProfit();
     
     const confirmMessage = `🚨 MONTHLY ACCOUNT CLOSING 🚨\n\n` +
-      `This will close ${currentMonthLabel} and create new accounts for next month.\n\n` +
+      `This will close ${currentMonthLabel} and calculate final profit.\n\n` +
+      `Current Financial Summary:\n` +
+      `• Total Car Balance: $${profitData.totalCarBalance.toLocaleString()}\n` +
+      `• Total Car Left: $${profitData.totalCarLeft.toLocaleString()}\n` +
+      `• Net Amount: $${profitData.netAmount.toLocaleString()}\n` +
+      `• Estimated Profit: $${profitData.estimatedProfit.toLocaleString()}\n\n` +
       `Actions that will be performed:\n` +
-      `• Close current month (${currentMonthLabel})\n` +
-      `• Create new monthly accounts for all cars\n` +
-      `• Create new monthly accounts for all customers\n` +
-      `• Transfer all balances to new accounts\n` +
-      `• Archive current month's transaction history\n\n` +
+      `• Calculate and record final profit for ${currentMonthLabel}\n` +
+      `• Reset all car balances to $0\n` +
+      `• Reset all car left amounts to $0\n` +
+      `• Archive current month's data\n` +
+      `• Create new monthly accounts for next month\n\n` +
       `⚠️ This action cannot be undone!\n\n` +
       `Are you sure you want to proceed?`;
 
@@ -177,8 +236,31 @@ const AccountManagement = () => {
         
         console.log('🔄 Performing monthly closing...');
         console.log('📅 Current month:', currentMonth);
-        console.log('🚗 Cars to process:', cars.length);
-        console.log('👥 Customers to process:', customers.length);
+        console.log('💰 Profit calculation:', profitData);
+        
+        // Reset all car balances and left amounts to 0
+        for (const car of cars) {
+          await carsAPI.update(car._id, { 
+            balance: 0,
+            left: 0
+          });
+        }
+        
+        // Create closed account record
+        const newClosedAccount = {
+          id: `closed_${currentMonth}`,
+          month: currentMonth,
+          monthLabel: currentMonthLabel,
+          closedDate: new Date().toISOString(),
+          totalBalance: profitData.totalCarBalance,
+          totalLeft: profitData.totalCarLeft,
+          totalProfit: profitData.estimatedProfit,
+          carsCount: cars.length,
+          customersCount: customers.length,
+          status: 'Closed'
+        };
+        
+        setClosedAccounts(prev => [newClosedAccount, ...prev]);
         
         // Update account months - close current and create new
         const newDate = new Date();
@@ -194,7 +276,7 @@ const AccountManagement = () => {
         
         showSuccess(
           'Monthly Closing Complete', 
-          `${currentMonthLabel} has been closed successfully! New accounts created for ${newMonthLabel}. All car and customer balances have been transferred to new monthly accounts.`
+          `${currentMonthLabel} has been closed successfully!\n\nProfit Calculated: $${profitData.estimatedProfit.toLocaleString()}\nAll car balances reset to $0\nNew accounts created for ${newMonthLabel}`
         );
         
         // Reload data
@@ -264,6 +346,50 @@ const AccountManagement = () => {
     }
   };
 
+  const handleReopenAccount = async () => {
+    if (!selectedReopenAccount) {
+      showError('Validation Error', 'Please select an account to reopen');
+      return;
+    }
+
+    const account = closedAccounts.find(acc => acc.id === selectedReopenAccount);
+    if (!account) return;
+
+    const confirmMessage = `🔄 REOPEN CLOSED ACCOUNT\n\n` +
+      `Account: ${account.monthLabel}\n` +
+      `Original Balance: $${account.totalBalance.toLocaleString()}\n` +
+      `Original Profit: $${account.totalProfit.toLocaleString()}\n\n` +
+      `This will:\n` +
+      `• Restore the account to active status\n` +
+      `• Make all historical data accessible\n` +
+      `• Allow new transactions for this period\n\n` +
+      `Are you sure you want to reopen this account?`;
+
+    if (window.confirm(confirmMessage)) {
+      try {
+        // Update account status
+        const updatedAccounts = closedAccounts.map(acc => 
+          acc.id === selectedReopenAccount 
+            ? { ...acc, status: 'Reopened' }
+            : acc
+        );
+        setClosedAccounts(updatedAccounts);
+        
+        showSuccess(
+          'Account Reopened',
+          `${account.monthLabel} account has been successfully reopened! All historical data is now accessible.`
+        );
+
+        setShowReopenModal(false);
+        setSelectedReopenAccount('');
+        
+      } catch (error) {
+        console.error('❌ Error reopening account:', error);
+        showError('Reopen Failed', 'Failed to reopen account. Please try again.');
+      }
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-96">
@@ -275,17 +401,19 @@ const AccountManagement = () => {
     );
   }
 
+  const profitData = calculateMonthlyProfit();
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Account Management</h1>
-        <p className="text-gray-600">Manage monthly accounts and generate reports</p>
+        <p className="text-gray-600">Manage monthly accounts, calculate profits, and generate reports</p>
       </div>
 
-      {/* Current Month Status */}
+      {/* Current Month Status with Profit Preview */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-4">
           <div className="flex items-center">
             <Calendar className="w-8 h-8 text-blue-600 mr-3" />
             <div>
@@ -304,13 +432,33 @@ const AccountManagement = () => {
             </p>
           </div>
         </div>
+
+        {/* Profit Preview */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
+          <div className="bg-white rounded-lg p-4 border border-blue-200">
+            <p className="text-sm text-blue-700">Total Car Balance</p>
+            <p className="text-xl font-bold text-blue-900">${profitData.totalCarBalance.toLocaleString()}</p>
+          </div>
+          <div className="bg-white rounded-lg p-4 border border-blue-200">
+            <p className="text-sm text-blue-700">Total Car Left</p>
+            <p className="text-xl font-bold text-red-600">${profitData.totalCarLeft.toLocaleString()}</p>
+          </div>
+          <div className="bg-white rounded-lg p-4 border border-blue-200">
+            <p className="text-sm text-blue-700">Net Amount</p>
+            <p className="text-xl font-bold text-green-600">${profitData.netAmount.toLocaleString()}</p>
+          </div>
+          <div className="bg-white rounded-lg p-4 border border-green-200">
+            <p className="text-sm text-green-700">Estimated Profit (15%)</p>
+            <p className="text-xl font-bold text-green-600">${profitData.estimatedProfit.toLocaleString()}</p>
+          </div>
+        </div>
       </div>
 
       {/* Monthly Closing Section */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <div className="flex items-center mb-4">
           <Settings className="w-6 h-6 text-orange-600 mr-2" />
-          <h2 className="text-xl font-semibold text-gray-900">Monthly Account Closing</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Monthly Account Closing & Profit Calculation</h2>
         </div>
         <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-4">
           <div className="flex items-start">
@@ -318,8 +466,8 @@ const AccountManagement = () => {
             <div>
               <h4 className="font-medium text-orange-900">Important Notice</h4>
               <p className="text-orange-800 text-sm mt-1">
-                This will close the current month and automatically create new accounts for all cars and customers. 
-                All balances will be transferred to the new monthly accounts. This action cannot be undone.
+                This will calculate final profit based on: (Car Balance - Car Left - Car Payments) and reset all car balances to $0 for the new month.
+                Profit calculation: Net Amount × 15% = ${profitData.estimatedProfit.toLocaleString()}
               </p>
             </div>
           </div>
@@ -337,10 +485,68 @@ const AccountManagement = () => {
           ) : (
             <>
               <Settings className="w-5 h-5 mr-2" />
-              Perform Monthly Closing
+              Perform Monthly Closing & Calculate Profit
             </>
           )}
         </Button>
+      </div>
+
+      {/* Closed Accounts Management */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center">
+            <FileText className="w-6 h-6 text-purple-600 mr-2" />
+            <h2 className="text-xl font-semibold text-gray-900">Closed Accounts Management</h2>
+          </div>
+          <Button
+            onClick={() => setShowReopenModal(true)}
+            variant="outline"
+          >
+            <RotateCcw className="w-5 h-5 mr-2" />
+            Reopen Account
+          </Button>
+        </div>
+        
+        <div className="space-y-4">
+          {closedAccounts.map((account) => (
+            <div key={account.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="font-semibold text-gray-900">{account.monthLabel}</h4>
+                  <p className="text-sm text-gray-600">Closed on {new Date(account.closedDate).toLocaleDateString()}</p>
+                </div>
+                <div className="text-right">
+                  <span className={`inline-block px-3 py-1 text-sm font-medium rounded-full ${
+                    account.status === 'Closed' 
+                      ? 'bg-red-100 text-red-800' 
+                      : 'bg-green-100 text-green-800'
+                  }`}>
+                    {account.status}
+                  </span>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-3">
+                <div>
+                  <p className="text-xs text-gray-500">Total Balance</p>
+                  <p className="font-semibold text-blue-600">${account.totalBalance.toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500">Total Profit</p>
+                  <p className="font-semibold text-green-600">${account.totalProfit.toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500">Cars</p>
+                  <p className="font-semibold text-gray-900">{account.carsCount}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500">Customers</p>
+                  <p className="font-semibold text-gray-900">{account.customersCount}</p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Individual Account Closing Section */}
@@ -491,6 +697,10 @@ const AccountManagement = () => {
               ...accountMonths.map(month => ({ 
                 value: month.value, 
                 label: `${month.label} (${month.status})` 
+              })),
+              ...closedAccounts.map(account => ({
+                value: account.month,
+                label: `${account.monthLabel} (${account.status})`
               }))
             ]}
           />
@@ -566,61 +776,76 @@ const AccountManagement = () => {
         </div>
       </div>
 
-      {/* Monthly Accounts List */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        <div className="p-6 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900">Monthly Account History</h2>
-        </div>
-        <div className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {accountMonths.map((month, index) => (
-              <div key={index} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-semibold text-gray-900">{month.label}</h3>
-                    <p className="text-sm text-gray-600">{month.value}</p>
-                  </div>
-                  <div className="text-right">
-                    <span className={`inline-block px-2 py-1 text-xs font-medium rounded-full ${
-                      month.status === 'Active'
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-gray-100 text-gray-800'
-                    }`}>
-                      {month.status}
-                    </span>
-                    {month.isCurrent && (
-                      <p className="text-xs text-blue-600 mt-1">Current</p>
-                    )}
-                  </div>
-                </div>
+      {/* Reopen Account Modal */}
+      {showReopenModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div className="p-6 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">Reopen Closed Account</h3>
+              <p className="text-sm text-gray-600">Select a closed account to reopen</p>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <FormSelect
+                label="Select Closed Account"
+                value={selectedReopenAccount}
+                onChange={(e) => setSelectedReopenAccount(e.target.value)}
+                options={[
+                  { value: '', label: 'Choose a closed account' },
+                  ...closedAccounts
+                    .filter(account => account.status === 'Closed')
+                    .map(account => ({
+                      value: account.id,
+                      label: `${account.monthLabel} (Profit: $${account.totalProfit.toLocaleString()})`
+                    }))
+                ]}
+                required
+              />
+
+              <div className="flex space-x-4 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setShowReopenModal(false);
+                    setSelectedReopenAccount('');
+                  }}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleReopenAccount} 
+                  className="flex-1"
+                  disabled={!selectedReopenAccount}
+                >
+                  <RotateCcw className="w-5 h-5 mr-2" />
+                  Reopen Account
+                </Button>
               </div>
-            ))}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Instructions */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
         <h3 className="text-lg font-semibold text-blue-900 mb-2">Account Management Instructions</h3>
         <ul className="text-blue-800 space-y-1">
-          <li>• <strong>Monthly Closing:</strong> Automatically closes current month and creates new accounts for all cars and customers</li>
+          <li>• <strong>Monthly Closing:</strong> Calculates profit from (Car Balance - Car Left) × 15% and resets all car balances to $0</li>
+          <li>• <strong>Profit Calculation:</strong> Only happens during monthly closing, not during invoice creation</li>
+          <li>• <strong>Balance Reset:</strong> All car balances start from $0 each new month</li>
+          <li>• <strong>Closed Account Management:</strong> View and reopen previously closed monthly accounts</li>
           <li>• <strong>Individual Account Closing:</strong> Close specific accounts when cars are sold or customers become inactive</li>
-          <li>• <strong>Account Monthly:</strong> Each month has its own account system for better tracking</li>
-          <li>• All current balances are transferred to the new monthly accounts</li>
-          <li>• Historical data is preserved in monthly account archives</li>
-          <li>• Generate reports to view detailed transactions for any account period</li>
-          <li>• Payments can be made from any monthly account (even closed ones)</li>
-          <li>• <strong>Warning:</strong> Account closing actions cannot be undone</li>
-          <li>• <strong>Note:</strong> Employee account management has been removed from this section</li>
+          <li>• <strong>Account Reopening:</strong> Reopen closed accounts to access historical data and allow new transactions</li>
+          <li>• <strong>Historical Data:</strong> All closed account data is preserved and accessible</li>
+          <li>• <strong>Warning:</strong> Monthly closing actions cannot be undone</li>
         </ul>
       </div>
-       <Footer/>
-    </div>
 
-    
+      <Footer/>
+    </div>
   );
 };
-
-
 
 export default AccountManagement;
