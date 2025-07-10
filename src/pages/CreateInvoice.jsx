@@ -404,6 +404,69 @@ const CreateInvoice = () => {
     
     try {
       const { total, totalLeft } = calculateTotals();
+      const invoiceData = {
+        invoiceNo: formData.invoiceNo,
+        carId: formData.carId,
+        invoiceDate: formData.invoiceDate,
+        items: invoiceItems.map(item => ({
+          itemId: item.itemId,
+          customerId: item.customerId,
+          description: item.description,
+          quantity: item.quantity,
+          price: item.price,
+          total: item.total,
+          leftAmount: item.leftAmount,
+          paymentMethod: item.paymentMethod
+        })),
+        total,
+        totalLeft,
+        totalProfit: 0
+      };
+      
+      // Create invoice first
+      const response = await invoicesAPI.create(invoiceData);
+      console.log('✅ Invoice created:', response.data);
+      
+      // Then distribute amounts
+      await distributeAmounts(invoiceData);
+      
+      // Remove from localStorage after successful submission
+      localStorage.removeItem(`invoice_${formData.invoiceNo}`);
+      
+      showSuccess(
+        'Invoice Created & Ready for Another', 
+        `Invoice ${formData.invoiceNo} created successfully! Ready to create another invoice.`
+      );
+      
+      // Reset form for next invoice instead of navigating
+      const nextInvoiceNo = currentInvoice + 1;
+      setCurrentInvoice(nextInvoiceNo);
+      
+      // Update invoice number
+      const newInvoiceNo = `INV-${String(nextInvoiceNo).padStart(3, '0')}`;
+      setFormData(prev => ({
+        ...prev,
+        invoiceNo: newInvoiceNo
+      }));
+      
+      // Reset form
+      resetForm(newInvoiceNo);
+      
+    } catch (error) {
+      console.error('❌ Error creating invoice:', error);
+      showError('Creation Failed', error.response?.data?.error || 'Error creating invoice. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSaveAndDistribute = async () => {
+    if (!validateForm()) return;
+    
+    setLoading(true);
+    
+    try {
+      const { total, totalLeft } = calculateTotals();
       
       const invoiceData = {
         invoiceNo: formData.invoiceNo,
@@ -435,8 +498,8 @@ const CreateInvoice = () => {
       localStorage.removeItem(`invoice_${formData.invoiceNo}`);
       
       showSuccess(
-        'Invoice Created & Distributed', 
-        `Invoice ${formData.invoiceNo} created successfully! Total: $${total} added to car balance, Left: $${totalLeft} added to car left amount.`
+        'Invoice Created & Distributed',
+        `Invoice ${formData.invoiceNo} created and distributed successfully! Redirecting to invoices page...`
       );
       
       setTimeout(() => {
@@ -451,42 +514,6 @@ const CreateInvoice = () => {
     }
   };
 
-  const handleSave = async () => {
-    if (!validateForm()) return;
-    
-    try {
-      const { total, totalLeft } = calculateTotals();
-      const invoiceData = {
-        ...formData,
-        items: invoiceItems,
-        total,
-        totalLeft
-      };
-      
-      // Save to localStorage for persistence
-      localStorage.setItem(`invoice_${formData.invoiceNo}`, JSON.stringify(invoiceData));
-      
-      showSuccess('Invoice Saved', `Invoice ${formData.invoiceNo} saved successfully! Ready to create another invoice.`);
-      
-      // Reset form for next invoice
-      const nextInvoiceNo = currentInvoice + 1;
-      setCurrentInvoice(nextInvoiceNo);
-      
-      // Update invoice number
-      const newInvoiceNo = `INV-${String(nextInvoiceNo).padStart(3, '0')}`;
-      setFormData(prev => ({
-        ...prev,
-        invoiceNo: newInvoiceNo
-      }));
-      
-      // Reset form
-      resetForm(newInvoiceNo);
-      
-    } catch (error) {
-      console.error('❌ Error saving invoice:', error);
-      showError('Save Failed', 'Error saving invoice. Please try again.');
-    }
-  };
 
   const handlePreviousInvoice = () => {
     if (currentInvoice > 1) {
@@ -843,16 +870,6 @@ const CreateInvoice = () => {
               {/* Right Column - Action Buttons */}
               <div className="flex flex-col justify-center space-y-4">
                 <Button
-                  onClick={handleSave}
-                  variant="outline"
-                  disabled={loading}
-                  className="w-full"
-                >
-                  <Save className="w-5 h-5 mr-2" />
-                  Create Invoice & Another Invoice
-                </Button>
-                
-                <Button
                   onClick={handleSubmit}
                   disabled={loading}
                   className="w-full"
@@ -860,14 +877,24 @@ const CreateInvoice = () => {
                   {loading ? (
                     <>
                       <div className="w-5 h-5 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      Creating & Distributing...
+                      Creating Invoice & Another...
                     </>
                   ) : (
                     <>
                       <Save className="w-5 h-5 mr-2" />
-                      Create Invoice & Distribute
+                      Create Invoice & Another Invoice
                     </>
                   )}
+                </Button>
+                
+                <Button
+                  onClick={handleSaveAndDistribute}
+                  variant="outline"
+                  disabled={loading}
+                  className="w-full"
+                >
+                  <Save className="w-5 h-5 mr-2" />
+                  Create Invoice & Distribute
                 </Button>
               </div>
             </div>
