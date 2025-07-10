@@ -656,7 +656,7 @@ const CreateInvoice = () => {
         </div>
 
         {/* Invoice Items */}
-        <div className="p-6">
+        <div className="p-6 relative">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-gray-900">Invoice Items</h3>
             <Button
@@ -670,8 +670,8 @@ const CreateInvoice = () => {
             </Button>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="min-w-full">
+          <div className="overflow-x-auto relative z-0">
+            <table className="min-w-full relative">
               <thead>
                 <tr className="border-b border-gray-200">
                   <th className="text-left py-2 px-2 text-sm font-medium text-gray-700">Item</th>
@@ -687,10 +687,11 @@ const CreateInvoice = () => {
               </thead>
               <tbody>
                 {invoiceItems.map((item, index) => (
-                  <tr key={item.id} className="border-b border-gray-100">
+                  <tr key={item.id} className="border-b border-gray-100 relative">
                     <td className="py-2 px-2">
                       {/* Searchable Item Dropdown - Like the image */}
-                      <SearchableDropdown
+                      <div className="relative z-10">
+                        <SearchableDropdown
                         placeholder="Search & select item..."
                         value={(() => {
                           const selectedItem = items.find(i => i._id === item.itemId);
@@ -716,10 +717,12 @@ const CreateInvoice = () => {
                         addNewText="Add New Item"
                         width="180px"
                       />
+                      </div>
                     </td>
                     <td className="py-2 px-2">
                       {/* Searchable Customer Dropdown - Like the image */}
-                      <SearchableDropdown
+                      <div className="relative z-10">
+                        <SearchableDropdown
                         placeholder="Search & select customer..."
                         value={(() => {
                           const selectedCustomer = customers.find(c => c._id === item.customerId);
@@ -745,6 +748,7 @@ const CreateInvoice = () => {
                         addNewText="Add New Customer"
                         width="200px"
                       />
+                      </div>
                     </td>
                     <td className="py-2 px-2">
                       <input

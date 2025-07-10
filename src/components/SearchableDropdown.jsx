@@ -88,7 +88,7 @@ const SearchableDropdown = ({
   const showAddNew = onAddNew && searchTerm.trim() && !hasExactMatch;
 
   return (
-    <div className="relative" ref={dropdownRef} style={{ minWidth: width }}>
+    <div className="relative z-10" ref={dropdownRef} style={{ minWidth: width }}>
       {/* Main Input */}
       <div 
         className={`
@@ -133,13 +133,13 @@ const SearchableDropdown = ({
 
       {/* Dropdown Menu */}
       {isOpen && !disabled && (
-        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+        <div className="absolute z-[9999] w-full mt-1 bg-white border border-gray-300 rounded-md shadow-xl max-h-60 overflow-y-auto left-0 top-full">
           {/* Search Results */}
           {filteredOptions.length > 0 ? (
             filteredOptions.map((option) => (
               <div
                 key={option.id}
-                className="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                className="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0 relative z-[9999]"
                 onClick={() => handleOptionSelect(option)}
               >
                 <div className="font-medium text-gray-900 text-sm">{option.label}</div>
@@ -161,7 +161,7 @@ const SearchableDropdown = ({
           {/* Add New Option */}
           {showAddNew && (
             <div
-              className="px-3 py-2 hover:bg-green-50 cursor-pointer border-t border-gray-200 bg-green-50"
+              className="px-3 py-2 hover:bg-green-50 cursor-pointer border-t border-gray-200 bg-green-50 relative z-[9999]"
               onClick={handleAddNew}
             >
               <div className="flex items-center text-green-700 font-medium text-sm">
