@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { Building2, Calendar, Printer, Car, ChevronDown, ChevronRight, Eye, Edit, Filter } from 'lucide-react';
 import Button from '../components/Button';
 import { carsAPI, invoicesAPI } from '../services/api';
+import { paymentsAPI } from '../services/api';
 import { useToast } from '../contexts/ToastContext';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
@@ -23,6 +24,7 @@ const CarReports = () => {
     const [modalMode, setModalMode] = useState('view');
       const [showModal, setShowModal] = useState(false);
   const [reportData, setReportData] = useState([]);
+  const [paymentsData, setPaymentsData] = useState([]);
   
   // Data from database
   const [cars, setCars] = useState([]);
@@ -57,6 +59,7 @@ const CarReports = () => {
   useEffect(() => {
     if (selectedCar) {
       loadReportData();
+      loadPaymentsData();
     }
   }, [selectedCar, dateRange]);
 
@@ -148,6 +151,27 @@ const CarReports = () => {
     }
   };
 
+  const loadPaymentsData = async () => {
+    try {
+      // Load payments for selected car
+      const response = await paymentsAPI.getAll();
+      const allPayments = response.data;
+      
+      // Filter payments by car and date range
+      const carPayments = allPayments.filter(payment => {
+        const carMatch = payment.carId?._id === selectedCar || payment.carId === selectedCar;
+        const paymentDate = new Date(payment.paymentDate);
+        const dateMatch = paymentDate >= dateRange.from && paymentDate <= dateRange.to;
+        return carMatch && dateMatch;
+      });
+      
+      setPaymentsData(carPayments);
+      console.log('✅ Car payments loaded:', carPayments);
+    } catch (error) {
+      console.error('❌ Error loading payments data:', error);
+      setPaymentsData([]);
+    }
+  };
   const handlePrint = () => {
     window.print();
   };
@@ -234,6 +258,22 @@ const CarReports = () => {
             </div>
             
             <div className="flex items-center space-x-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Quick Filter</label>
+                <button
+                  onClick={() => {
+                    setDateRange({
+                      from: new Date('2020-01-01'),
+                      to: new Date('2030-12-31')
+                    });
+                    if (selectedCar) loadReportData();
+                  }}
+                  className="border border-gray-300 rounded-lg px-3 py-2 hover:bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm font-medium"
+                >
+                  All Dates
+                </button>
+              </div>
+              
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">From</label>
                 <input
@@ -453,6 +493,93 @@ const CarReports = () => {
                 </div>
               </div>
             </div>
+
+            {/* Payments Section */}
+            {paymentsData.length > 0 && (
+              <div className="mt-6 bg-white border border-gray-300 rounded-lg p-4 print:bg-white print:border-gray-400">
+                <h4 className="text-lg font-semibold text-gray-900 mb-4">Car Payments History</h4>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full bg-white print:bg-white">
+                    <thead>
+                      <tr className="border-b border-gray-200">
+                        <th className="text-left py-2 px-3 text-sm font-medium text-gray-700 bg-white print:bg-white">Date</th>
+                        <th className="text-left py-2 px-3 text-sm font-medium text-gray-700 bg-white print:bg-white">Type</th>
+                        <th className="text-left py-2 px-3 text-sm font-medium text-gray-700 bg-white print:bg-white">Invoice No</th>
+                        <th className="text-left py-2 px-3 text-sm font-medium text-gray-700 bg-white print:bg-white">Description</th>
+                        <th className="text-left py-2 px-3 text-sm font-medium text-gray-700 bg-white print:bg-white">Amount</th>
+                        <th className="text-left py-2 px-3 text-sm font-medium text-gray-700 bg-white print:bg-white">Account Month</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white print:bg-white">
+                      {paymentsData.map((payment, index) => (
+                        <tr key={index} className="border-b border-gray-100 bg-white print:bg-white">
+                          <td className="py-2 px-3 text-sm text-gray-600 bg-white print:bg-white">
+                            {format(new Date(payment.paymentDate), 'MMM dd, yyyy')}
+                          </td>
+                          <td className="py-2 px-3 text-sm bg-white print:bg-white">
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              payment.type === 'receive' 
+                                ? 'bg-green-100 text-green-800' 
+                                : 'bg-red-100 text-red-800'
+                            }`}>
+                              {payment.type === 'receive' ? 'Received' : 'Payment Out'}
+                            </span>
+                          </td>
+                          <td className="py-2 px-3 text-sm font-medium text-blue-600 bg-white print:bg-white">
+                            {payment.invoiceNo || 'N/A'}
+                          </td>
+                          <td className="py-2 px-3 text-sm text-gray-700 bg-white print:bg-white">
+                            {payment.description || 'No description'}
+                          </td>
+                          <td className="py-2 px-3 text-sm font-semibold bg-white print:bg-white">
+                            <span className={payment.type === 'receive' ? 'text-green-600' : 'text-red-600'}>
+                              {payment.type === 'receive' ? '+' : '-'}${payment.amount.toLocaleString()}
+                            </span>
+                          </td>
+                          <td className="py-2 px-3 text-sm text-gray-600 bg-white print:bg-white">
+                            {payment.accountMonth || 'N/A'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                
+                {/* Payments Summary */}
+                <div className="mt-4 grid grid-cols-3 gap-4">
+                  <div className="text-center p-3 bg-green-50 rounded-lg">
+                    <p className="text-sm text-green-700">Total Received</p>
+                    <p className="font-semibold text-green-600">
+                      ${paymentsData
+                        .filter(p => p.type === 'receive')
+                        .reduce((sum, p) => sum + p.amount, 0)
+                        .toLocaleString()}
+                    </p>
+                  </div>
+                  <div className="text-center p-3 bg-red-50 rounded-lg">
+                    <p className="text-sm text-red-700">Total Payments Out</p>
+                    <p className="font-semibold text-red-600">
+                      ${paymentsData
+                        .filter(p => p.type === 'payment_out')
+                        .reduce((sum, p) => sum + p.amount, 0)
+                        .toLocaleString()}
+                    </p>
+                  </div>
+                  <div className="text-center p-3 bg-blue-50 rounded-lg">
+                    <p className="text-sm text-blue-700">Net Amount</p>
+                    <p className="font-semibold text-blue-600">
+                      ${(paymentsData
+                        .filter(p => p.type === 'receive')
+                        .reduce((sum, p) => sum + p.amount, 0) -
+                        paymentsData
+                        .filter(p => p.type === 'payment_out')
+                        .reduce((sum, p) => sum + p.amount, 0))
+                        .toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

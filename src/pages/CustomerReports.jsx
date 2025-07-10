@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { Building2, Calendar, Printer, User, ChevronDown, ChevronRight, Eye, Edit, Filter } from 'lucide-react';
 import Button from '../components/Button';
 import { customersAPI, invoicesAPI } from '../services/api';
+import { paymentsAPI } from '../services/api';
 import { useToast } from '../contexts/ToastContext';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
@@ -19,6 +20,7 @@ const CustomerReports = () => {
   const [expandedItems, setExpandedItems] = useState({});
   const [loading, setLoading] = useState(true);
   const [reportData, setReportData] = useState([]);
+  const [paymentsData, setPaymentsData] = useState([]);
   
   // Data from database
   const [customers, setCustomers] = useState([]);
@@ -53,6 +55,7 @@ const CustomerReports = () => {
   useEffect(() => {
     if (selectedCustomer) {
       loadReportData();
+      loadPaymentsData();
     }
   }, [selectedCustomer, dateRange]);
 
@@ -143,6 +146,27 @@ const CustomerReports = () => {
     }
   };
 
+  const loadPaymentsData = async () => {
+    try {
+      // Load payments for selected customer
+      const response = await paymentsAPI.getAll();
+      const allPayments = response.data;
+      
+      // Filter payments by customer and date range
+      const customerPayments = allPayments.filter(payment => {
+        const customerMatch = payment.customerId?._id === selectedCustomer || payment.customerId === selectedCustomer;
+        const paymentDate = new Date(payment.paymentDate);
+        const dateMatch = paymentDate >= dateRange.from && paymentDate <= dateRange.to;
+        return customerMatch && dateMatch;
+      });
+      
+      setPaymentsData(customerPayments);
+      console.log('✅ Customer payments loaded:', customerPayments);
+    } catch (error) {
+      console.error('❌ Error loading payments data:', error);
+      setPaymentsData([]);
+    }
+  };
   const handlePrint = () => {
     window.print();
   };
@@ -223,6 +247,22 @@ const CustomerReports = () => {
             </div>
             
             <div className="flex items-center space-x-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Quick Filter</label>
+                <button
+                  onClick={() => {
+                    setDateRange({
+                      from: new Date('2020-01-01'),
+                      to: new Date('2030-12-31')
+                    });
+                    if (selectedCustomer) loadReportData();
+                  }}
+                  className="border border-gray-300 rounded-lg px-3 py-2 hover:bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm font-medium"
+                >
+                  All Dates
+                </button>
+              </div>
+              
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">From</label>
                 <input
@@ -438,6 +478,86 @@ const CustomerReports = () => {
                 </div>
               </div>
             </div>
+
+            {/* Customer Payments Section */}
+            {paymentsData.length > 0 && (
+              <div className="mt-6 bg-white border border-gray-300 rounded-lg p-4 print:bg-white print:border-gray-400">
+                <h4 className="text-lg font-semibold text-gray-900 mb-4">Customer Payments History</h4>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full bg-white print:bg-white">
+                    <thead>
+                      <tr className="border-b border-gray-200">
+                        <th className="text-left py-2 px-3 text-sm font-medium text-gray-700 bg-white print:bg-white">Date</th>
+                        <th className="text-left py-2 px-3 text-sm font-medium text-gray-700 bg-white print:bg-white">Type</th>
+                        <th className="text-left py-2 px-3 text-sm font-medium text-gray-700 bg-white print:bg-white">Invoice No</th>
+                        <th className="text-left py-2 px-3 text-sm font-medium text-gray-700 bg-white print:bg-white">Description</th>
+                        <th className="text-left py-2 px-3 text-sm font-medium text-gray-700 bg-white print:bg-white">Amount</th>
+                        <th className="text-left py-2 px-3 text-sm font-medium text-gray-700 bg-white print:bg-white">Balance Impact</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white print:bg-white">
+                      {paymentsData.map((payment, index) => (
+                        <tr key={index} className="border-b border-gray-100 bg-white print:bg-white">
+                          <td className="py-2 px-3 text-sm text-gray-600 bg-white print:bg-white">
+                            {format(new Date(payment.paymentDate), 'MMM dd, yyyy')}
+                          </td>
+                          <td className="py-2 px-3 text-sm bg-white print:bg-white">
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              payment.type === 'receive' 
+                                ? 'bg-green-100 text-green-800' 
+                                : 'bg-blue-100 text-blue-800'
+                            }`}>
+                              {payment.type === 'receive' ? 'Payment Received' : 'Credit Purchase'}
+                            </span>
+                          </td>
+                          <td className="py-2 px-3 text-sm font-medium text-blue-600 bg-white print:bg-white">
+                            {payment.invoiceNo || 'N/A'}
+                          </td>
+                          <td className="py-2 px-3 text-sm text-gray-700 bg-white print:bg-white">
+                            {payment.description || 'No description'}
+                          </td>
+                          <td className="py-2 px-3 text-sm font-semibold bg-white print:bg-white">
+                            <span className={payment.type === 'receive' ? 'text-green-600' : 'text-blue-600'}>
+                              {payment.type === 'receive' ? '-' : '+'}${payment.amount.toLocaleString()}
+                            </span>
+                          </td>
+                          <td className="py-2 px-3 text-xs text-gray-600 bg-white print:bg-white">
+                            {payment.type === 'receive' 
+                              ? 'Reduced balance' 
+                              : 'Added to balance'
+                            }
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                
+                {/* Customer Payments Summary */}
+                <div className="mt-4 grid grid-cols-2 gap-4">
+                  <div className="text-center p-3 bg-green-50 rounded-lg">
+                    <p className="text-sm text-green-700">Total Payments Received</p>
+                    <p className="font-semibold text-green-600">
+                      ${paymentsData
+                        .filter(p => p.type === 'receive')
+                        .reduce((sum, p) => sum + p.amount, 0)
+                        .toLocaleString()}
+                    </p>
+                    <p className="text-xs text-green-600">Balance reduced</p>
+                  </div>
+                  <div className="text-center p-3 bg-blue-50 rounded-lg">
+                    <p className="text-sm text-blue-700">Total Credit Purchases</p>
+                    <p className="font-semibold text-blue-600">
+                      ${paymentsData
+                        .filter(p => p.type === 'credit_purchase')
+                        .reduce((sum, p) => sum + p.amount, 0)
+                        .toLocaleString()}
+                    </p>
+                    <p className="text-xs text-blue-600">Balance increased</p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
