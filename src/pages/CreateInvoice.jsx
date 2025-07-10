@@ -460,7 +460,7 @@ const CreateInvoice = () => {
     }
   };
 
-  const handleSaveAndDistribute = async () => {
+  const handleCreateInvoiceAndAnother = async () => {
     if (!validateForm()) return;
     
     setLoading(true);
@@ -484,27 +484,37 @@ const CreateInvoice = () => {
         })),
         total,
         totalLeft,
-        totalProfit: 0 // NO PROFIT CALCULATION DURING INVOICE CREATION
+        totalProfit: 0
       };
       
       // Create invoice first
       const response = await invoicesAPI.create(invoiceData);
       console.log('✅ Invoice created:', response.data);
       
-      // Then distribute amounts (without profit)
+      // Then distribute amounts
       await distributeAmounts(invoiceData);
       
       // Remove from localStorage after successful submission
       localStorage.removeItem(`invoice_${formData.invoiceNo}`);
       
       showSuccess(
-        'Invoice Created & Distributed',
-        `Invoice ${formData.invoiceNo} created and distributed successfully! Redirecting to invoices page...`
+        'Invoice Created & Ready for Another', 
+        `Invoice ${formData.invoiceNo} created and distributed successfully! Ready to create another invoice.`
       );
       
-      setTimeout(() => {
-        navigate('/invoices');
-      }, 2000);
+      // Reset form for next invoice instead of navigating
+      const nextInvoiceNo = currentInvoice + 1;
+      setCurrentInvoice(nextInvoiceNo);
+      
+      // Update invoice number
+      const newInvoiceNo = `INV-${String(nextInvoiceNo).padStart(3, '0')}`;
+      setFormData(prev => ({
+        ...prev,
+        invoiceNo: newInvoiceNo
+      }));
+      
+      // Reset form
+      resetForm(newInvoiceNo);
       
     } catch (error) {
       console.error('❌ Error creating invoice:', error);
@@ -870,31 +880,21 @@ const CreateInvoice = () => {
               {/* Right Column - Action Buttons */}
               <div className="flex flex-col justify-center space-y-4">
                 <Button
-                  onClick={handleSubmit}
+                  onClick={handleCreateInvoiceAndAnother}
                   disabled={loading}
                   className="w-full"
                 >
                   {loading ? (
                     <>
                       <div className="w-5 h-5 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      Creating Invoice & Another...
+                      Creating Invoice...
                     </>
                   ) : (
                     <>
                       <Save className="w-5 h-5 mr-2" />
-                      Create Invoice & Another Invoice
+                      Create Invoice & Another Invoice & Distribute
                     </>
                   )}
-                </Button>
-                
-                <Button
-                  onClick={handleSaveAndDistribute}
-                  variant="outline"
-                  disabled={loading}
-                  className="w-full"
-                >
-                  <Save className="w-5 h-5 mr-2" />
-                  Create Invoice & Distribute
                 </Button>
               </div>
             </div>
