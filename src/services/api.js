@@ -95,6 +95,7 @@ export const paymentsAPI = {
   receive: (paymentData) => api.post('/payments/receive', paymentData),
   paymentOut: (paymentData) => api.post('/payments/payment-out', paymentData),
   getAll: () => api.get('/payments'),
+  delete: (id) => api.delete(`/payments/${id}`),
 };
 
 // Dashboard API

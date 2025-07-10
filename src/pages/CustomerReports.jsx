@@ -1,16 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Building2, Calendar, Printer, User, ChevronDown, ChevronRight, Eye, Edit, Filter } from 'lucide-react';
+import { Building2, Calendar, Printer, User, ChevronDown, ChevronRight, Eye, Edit, Filter, Trash2 } from 'lucide-react';
 import Button from '../components/Button';
-import { customersAPI, invoicesAPI } from '../services/api';
-import { paymentsAPI } from '../services/api';
+import { customersAPI, invoicesAPI, paymentsAPI } from '../services/api';
 import { useToast } from '../contexts/ToastContext';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 import Footer from '../components/Footer';
 
 const CustomerReports = () => {
-  const { showError } = useToast();
+  const { showError, showSuccess } = useToast();
   const [searchParams] = useSearchParams();
   const [selectedCustomer, setSelectedCustomer] = useState('');
   const [dateRange, setDateRange] = useState({
@@ -197,6 +196,69 @@ const CustomerReports = () => {
   const handleEditInvoice = (invoiceNo) => {
     console.log('Edit invoice:', invoiceNo);
     alert(`Opening invoice ${invoiceNo} for editing`);
+  };
+
+  const handleDeletePayment = async (payment) => {
+    const confirmMessage = `🗑️ DELETE PAYMENT\n\n` +
+      `Payment Details:\n` +
+      `• Date: ${format(new Date(payment.paymentDate), 'MMM dd, yyyy')}\n` +
+      `• Type: ${payment.type === 'receive' ? 'Payment Received' : 'Credit Purchase'}\n` +
+      `• Amount: $${payment.amount.toLocaleString()}\n` +
+      `• Description: ${payment.description || 'No description'}\n` +
+      `• Invoice: ${payment.invoiceNo || 'N/A'}\n\n` +
+      `This will:\n` +
+      `• Delete the payment record permanently\n` +
+      `• Reverse the customer balance change: ${payment.type === 'receive' ? '+' : '-'}$${payment.amount.toLocaleString()}\n` +
+      `• This action cannot be undone!\n\n` +
+      `Are you sure you want to delete this payment?`;
+
+    if (window.confirm(confirmMessage)) {
+      try {
+        setLoading(true);
+        
+        // Delete payment from database
+        if (payment._id) {
+          await paymentsAPI.delete(payment._id);
+          console.log('✅ Payment deleted from database');
+        }
+        
+        // Reverse customer balance changes
+        const selectedCustomerData = customers.find(customer => customer._id === selectedCustomer);
+        if (selectedCustomerData) {
+          let newBalance = selectedCustomerData.balance || 0;
+          
+          if (payment.type === 'receive') {
+            // If it was a payment received, add back to customer balance (debt)
+            newBalance = newBalance + payment.amount;
+          } else {
+            // If it was a credit purchase, subtract from customer balance
+            newBalance = Math.max(0, newBalance - payment.amount);
+          }
+          
+          // Update customer balance
+          await customersAPI.update(selectedCustomer, { 
+            balance: newBalance
+          });
+          
+          console.log(`✅ Customer balance updated: $${newBalance}`);
+        }
+        
+        showSuccess(
+          'Payment Deleted', 
+          `Payment of $${payment.amount.toLocaleString()} has been deleted and customer balance has been updated!`
+        );
+        
+        // Reload data
+        loadReportData();
+        loadPaymentsData();
+        
+      } catch (error) {
+        console.error('❌ Error deleting payment:', error);
+        showError('Delete Failed', 'Failed to delete payment. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    }
   };
 
   const selectedCustomerName = customers.find(c => c._id === selectedCustomer)?.customerName || '';
@@ -493,6 +555,7 @@ const CustomerReports = () => {
                         <th className="text-left py-2 px-3 text-sm font-medium text-gray-700 bg-white print:bg-white">Description</th>
                         <th className="text-left py-2 px-3 text-sm font-medium text-gray-700 bg-white print:bg-white">Amount</th>
                         <th className="text-left py-2 px-3 text-sm font-medium text-gray-700 bg-white print:bg-white">Balance Impact</th>
+                        <th className="text-left py-2 px-3 text-sm font-medium text-gray-700 bg-white print:bg-white print:hidden">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="bg-white print:bg-white">
@@ -526,6 +589,35 @@ const CustomerReports = () => {
                               ? 'Reduced balance' 
                               : 'Added to balance'
                             }
+                          </td>
+                          <td className="py-2 px-3 text-sm print:hidden bg-white">
+                            <div className="flex items-center space-x-2">
+                              {payment.invoiceNo && (
+                                <>
+                                  <button
+                                    onClick={() => handleViewInvoice(payment.invoiceNo)}
+                                    className="p-1 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                                    title="View Invoice"
+                                  >
+                                    <Eye className="w-4 h-4" />
+                                  </button>
+                                  <button
+                                    onClick={() => handleEditInvoice(payment.invoiceNo)}
+                                    className="p-1 text-green-600 hover:bg-green-50 rounded transition-colors"
+                                    title="Edit Invoice"
+                                  >
+                                    <Edit className="w-4 h-4" />
+                                  </button>
+                                </>
+                              )}
+                              <button
+                                onClick={() => handleDeletePayment(payment)}
+                                className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors"
+                                title="Delete Payment"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}

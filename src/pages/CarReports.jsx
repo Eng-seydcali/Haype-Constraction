@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Building2, Calendar, Printer, Car, ChevronDown, ChevronRight, Eye, Edit, Filter } from 'lucide-react';
+import { Building2, Calendar, Printer, Car, ChevronDown, ChevronRight, Eye, Edit, Filter, Trash2 } from 'lucide-react';
 import Button from '../components/Button';
-import { carsAPI, invoicesAPI } from '../services/api';
-import { paymentsAPI } from '../services/api';
+import { carsAPI, invoicesAPI, paymentsAPI } from '../services/api';
 import { useToast } from '../contexts/ToastContext';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
@@ -11,7 +10,7 @@ import Footer from '../components/Footer';
 import InvoiceModal from '../components/InvoiceModal';
 
 const CarReports = () => {
-  const { showError } = useToast();
+  const { showError, showSuccess } = useToast();
   const [searchParams] = useSearchParams();
   const [selectedCar, setSelectedCar] = useState('');
   const [dateRange, setDateRange] = useState({
@@ -208,6 +207,73 @@ const CarReports = () => {
   const handleCloseModal = () => {
     setShowModal(false);
     setSelectedInvoice(null);
+  };
+
+  const handleDeletePayment = async (payment) => {
+    const confirmMessage = `🗑️ DELETE PAYMENT\n\n` +
+      `Payment Details:\n` +
+      `• Date: ${format(new Date(payment.paymentDate), 'MMM dd, yyyy')}\n` +
+      `• Type: ${payment.type === 'receive' ? 'Payment Received' : 'Payment Out'}\n` +
+      `• Amount: $${payment.amount.toLocaleString()}\n` +
+      `• Description: ${payment.description || 'No description'}\n` +
+      `• Invoice: ${payment.invoiceNo || 'N/A'}\n\n` +
+      `This will:\n` +
+      `• Delete the payment record permanently\n` +
+      `• Reverse the car balance change: ${payment.type === 'receive' ? '+' : '-'}$${payment.amount.toLocaleString()}\n` +
+      `• Update car left amount if applicable\n` +
+      `• This action cannot be undone!\n\n` +
+      `Are you sure you want to delete this payment?`;
+
+    if (window.confirm(confirmMessage)) {
+      try {
+        setLoading(true);
+        
+        // Delete payment from database
+        if (payment._id) {
+          await paymentsAPI.delete(payment._id);
+          console.log('✅ Payment deleted from database');
+        }
+        
+        // Reverse car balance changes
+        const selectedCarData = cars.find(car => car._id === selectedCar);
+        if (selectedCarData) {
+          let newBalance = selectedCarData.balance || 0;
+          let newLeft = selectedCarData.left || 0;
+          
+          if (payment.type === 'receive') {
+            // If it was a payment received, subtract from balance
+            newBalance = Math.max(0, newBalance - payment.amount);
+          } else {
+            // If it was a payment out, add back to balance and subtract from left
+            newBalance = newBalance + payment.amount;
+            newLeft = Math.max(0, newLeft - payment.amount);
+          }
+          
+          // Update car balance
+          await carsAPI.update(selectedCar, { 
+            balance: newBalance,
+            left: newLeft
+          });
+          
+          console.log(`✅ Car balance updated: $${newBalance}, Left: $${newLeft}`);
+        }
+        
+        showSuccess(
+          'Payment Deleted', 
+          `Payment of $${payment.amount.toLocaleString()} has been deleted and car balance has been updated!`
+        );
+        
+        // Reload data
+        loadReportData();
+        loadPaymentsData();
+        
+      } catch (error) {
+        console.error('❌ Error deleting payment:', error);
+        showError('Delete Failed', 'Failed to delete payment. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    }
   };
 
   const selectedCarName = cars.find(c => c._id === selectedCar)?.carName || '';
@@ -508,6 +574,7 @@ const CarReports = () => {
                         <th className="text-left py-2 px-3 text-sm font-medium text-gray-700 bg-white print:bg-white">Description</th>
                         <th className="text-left py-2 px-3 text-sm font-medium text-gray-700 bg-white print:bg-white">Amount</th>
                         <th className="text-left py-2 px-3 text-sm font-medium text-gray-700 bg-white print:bg-white">Account Month</th>
+                        <th className="text-left py-2 px-3 text-sm font-medium text-gray-700 bg-white print:bg-white print:hidden">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="bg-white print:bg-white">
@@ -538,6 +605,35 @@ const CarReports = () => {
                           </td>
                           <td className="py-2 px-3 text-sm text-gray-600 bg-white print:bg-white">
                             {payment.accountMonth || 'N/A'}
+                          </td>
+                          <td className="py-2 px-3 text-sm print:hidden bg-white">
+                            <div className="flex items-center space-x-2">
+                              {payment.invoiceNo && (
+                                <>
+                                  <button
+                                    onClick={() => handleViewInvoice(payment.invoiceNo)}
+                                    className="p-1 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                                    title="View Invoice"
+                                  >
+                                    <Eye className="w-4 h-4" />
+                                  </button>
+                                  <button
+                                    onClick={() => handleEditInvoice(payment.invoiceNo)}
+                                    className="p-1 text-green-600 hover:bg-green-50 rounded transition-colors"
+                                    title="Edit Invoice"
+                                  >
+                                    <Edit className="w-4 h-4" />
+                                  </button>
+                                </>
+                              )}
+                              <button
+                                onClick={() => handleDeletePayment(payment)}
+                                className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors"
+                                title="Delete Payment"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}
