@@ -688,67 +688,169 @@ const CreateInvoice = () => {
                 {invoiceItems.map((item, index) => (
                   <tr key={item.id} className="border-b border-gray-100">
                     <td className="py-2 px-2">
-                      <select
-                        value={item.itemId}
-                        onChange={(e) => handleItemChange(index, 'itemId', e.target.value)}
-                        className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        style={{ minWidth: '150px' }}
-                      >
-                        <option value="">Select item</option>
-                        {items.map(itm => (
-                          <option key={itm._id} value={itm._id}>
-                            {itm.itemName} - ${itm.price}
-                          </option>
-                        ))}
-                        <option value="add_new" className="bg-blue-50 text-blue-700 font-medium">
-                          ➕ Add New Item
-                        </option>
-                      </select>
-                      
-                      {/* Search functionality for items */}
-                      <div className="mt-1">
+                      {/* Searchable Item Dropdown */}
+                      <div className="relative">
                         <input
                           type="text"
-                          placeholder="Search items..."
-                          className="w-full text-xs border border-gray-200 rounded px-2 py-1 focus:ring-1 focus:ring-blue-400 focus:border-blue-400"
+                          placeholder="Search & select item..."
+                          className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          style={{ minWidth: '150px' }}
+                          onFocus={() => {
+                            // Show dropdown when focused
+                            const dropdown = document.getElementById(`item-dropdown-${index}`);
+                            if (dropdown) dropdown.style.display = 'block';
+                          }}
+                          onBlur={(e) => {
+                            // Hide dropdown when focus lost (with delay for selection)
+                            setTimeout(() => {
+                              const dropdown = document.getElementById(`item-dropdown-${index}`);
+                              if (dropdown) dropdown.style.display = 'none';
+                            }, 200);
+                          }}
                           onChange={(e) => {
                             const searchTerm = e.target.value.toLowerCase();
-                            // Filter items based on search
-                            console.log('Searching items:', searchTerm);
+                            const dropdown = document.getElementById(`item-dropdown-${index}`);
+                            if (dropdown) {
+                              const options = dropdown.querySelectorAll('.item-option');
+                              options.forEach(option => {
+                                const text = option.textContent.toLowerCase();
+                                option.style.display = text.includes(searchTerm) ? 'block' : 'none';
+                              });
+                            }
                           }}
+                          value={(() => {
+                            const selectedItem = items.find(i => i._id === item.itemId);
+                            return selectedItem ? selectedItem.itemName : '';
+                          })()}
+                          readOnly={item.itemId ? true : false}
                         />
+                        
+                        {/* Dropdown Options */}
+                        <div 
+                          id={`item-dropdown-${index}`}
+                          className="absolute z-10 w-full bg-white border border-gray-300 rounded-b max-h-40 overflow-y-auto shadow-lg"
+                          style={{ display: 'none', top: '100%' }}
+                        >
+                          {items.map(itm => (
+                            <div
+                              key={itm._id}
+                              className="item-option px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm border-b border-gray-100"
+                              onClick={() => {
+                                handleItemChange(index, 'itemId', itm._id);
+                                const dropdown = document.getElementById(`item-dropdown-${index}`);
+                                if (dropdown) dropdown.style.display = 'none';
+                              }}
+                            >
+                              <div className="font-medium">{itm.itemName}</div>
+                              <div className="text-xs text-gray-500">Price: ${itm.price}</div>
+                            </div>
+                          ))}
+                          <div
+                            className="item-option px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm bg-blue-50 text-blue-700 font-medium"
+                            onClick={() => {
+                              setCurrentItemIndex(index);
+                              setShowAddItemModal(true);
+                              const dropdown = document.getElementById(`item-dropdown-${index}`);
+                              if (dropdown) dropdown.style.display = 'none';
+                            }}
+                          >
+                            ➕ Add New Item
+                          </div>
+                        </div>
+                        
+                        {/* Clear Selection Button */}
+                        {item.itemId && (
+                          <button
+                            type="button"
+                            className="absolute right-1 top-1 text-gray-400 hover:text-gray-600"
+                            onClick={() => handleItemChange(index, 'itemId', '')}
+                          >
+                            ✕
+                          </button>
+                        )}
                       </div>
                     </td>
                     <td className="py-2 px-2">
-                      <select
-                        value={item.customerId}
-                        onChange={(e) => handleItemChange(index, 'customerId', e.target.value)}
-                        className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        style={{ minWidth: '150px' }}
-                      >
-                        <option value="">Select customer</option>
-                        {customers.map(customer => (
-                          <option key={customer._id} value={customer._id}>
-                            {customer.customerName} - ${(customer.balance || 0).toLocaleString()}
-                          </option>
-                        ))}
-                        <option value="add_new" className="bg-green-50 text-green-700 font-medium">
-                          ➕ Add New Customer
-                        </option>
-                      </select>
-                      
-                      {/* Search functionality for customers */}
-                      <div className="mt-1">
+                      {/* Searchable Customer Dropdown */}
+                      <div className="relative">
                         <input
                           type="text"
-                          placeholder="Search customers..."
-                          className="w-full text-xs border border-gray-200 rounded px-2 py-1 focus:ring-1 focus:ring-blue-400 focus:border-blue-400"
+                          placeholder="Search & select customer..."
+                          className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          style={{ minWidth: '180px' }}
+                          onFocus={() => {
+                            // Show dropdown when focused
+                            const dropdown = document.getElementById(`customer-dropdown-${index}`);
+                            if (dropdown) dropdown.style.display = 'block';
+                          }}
+                          onBlur={(e) => {
+                            // Hide dropdown when focus lost (with delay for selection)
+                            setTimeout(() => {
+                              const dropdown = document.getElementById(`customer-dropdown-${index}`);
+                              if (dropdown) dropdown.style.display = 'none';
+                            }, 200);
+                          }}
                           onChange={(e) => {
                             const searchTerm = e.target.value.toLowerCase();
-                            // Filter customers based on search
-                            console.log('Searching customers:', searchTerm);
+                            const dropdown = document.getElementById(`customer-dropdown-${index}`);
+                            if (dropdown) {
+                              const options = dropdown.querySelectorAll('.customer-option');
+                              options.forEach(option => {
+                                const text = option.textContent.toLowerCase();
+                                option.style.display = text.includes(searchTerm) ? 'block' : 'none';
+                              });
+                            }
                           }}
+                          value={(() => {
+                            const selectedCustomer = customers.find(c => c._id === item.customerId);
+                            return selectedCustomer ? selectedCustomer.customerName : '';
+                          })()}
+                          readOnly={item.customerId ? true : false}
                         />
+                        
+                        {/* Dropdown Options */}
+                        <div 
+                          id={`customer-dropdown-${index}`}
+                          className="absolute z-10 w-full bg-white border border-gray-300 rounded-b max-h-40 overflow-y-auto shadow-lg"
+                          style={{ display: 'none', top: '100%' }}
+                        >
+                          {customers.map(customer => (
+                            <div
+                              key={customer._id}
+                              className="customer-option px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm border-b border-gray-100"
+                              onClick={() => {
+                                handleItemChange(index, 'customerId', customer._id);
+                                const dropdown = document.getElementById(`customer-dropdown-${index}`);
+                                if (dropdown) dropdown.style.display = 'none';
+                              }}
+                            >
+                              <div className="font-medium">{customer.customerName}</div>
+                              <div className="text-xs text-gray-500">Balance: ${(customer.balance || 0).toLocaleString()}</div>
+                            </div>
+                          ))}
+                          <div
+                            className="customer-option px-3 py-2 hover:bg-green-50 cursor-pointer text-sm bg-green-50 text-green-700 font-medium"
+                            onClick={() => {
+                              setCurrentItemIndex(index);
+                              setShowAddCustomerModal(true);
+                              const dropdown = document.getElementById(`customer-dropdown-${index}`);
+                              if (dropdown) dropdown.style.display = 'none';
+                            }}
+                          >
+                            ➕ Add New Customer
+                          </div>
+                        </div>
+                        
+                        {/* Clear Selection Button */}
+                        {item.customerId && (
+                          <button
+                            type="button"
+                            className="absolute right-1 top-1 text-gray-400 hover:text-gray-600"
+                            onClick={() => handleItemChange(index, 'customerId', '')}
+                          >
+                            ✕
+                          </button>
+                        )}
                       </div>
                     </td>
                     <td className="py-2 px-2">
@@ -849,7 +951,7 @@ const CreateInvoice = () => {
                   disabled={loading}
                 >
                   <Save className="w-5 h-5 mr-2" />
-                  Save & Create Another
+                  Create Invoice & Another Invoice
                 </Button>
                 
                 <Button

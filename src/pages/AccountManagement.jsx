@@ -41,12 +41,26 @@ const AccountManagement = () => {
   const [showMonthlyModal, setShowMonthlyModal] = useState(false);
   const [selectedMonthlyAccount, setSelectedMonthlyAccount] = useState(null);
 
+  // Selected car for monthly history
+  const [selectedCarForHistory, setSelectedCarForHistory] = useState('');
+  const [carMonthlyData, setCarMonthlyData] = useState([]);
+  const [loadingCarData, setLoadingCarData] = useState(false);
+
   // Load data from database
   useEffect(() => {
     loadAllData();
     generateAccountMonths();
     loadClosedAccounts();
   }, []);
+
+  // Load car monthly data when car is selected
+  useEffect(() => {
+    if (selectedCarForHistory) {
+      loadCarMonthlyData();
+    } else {
+      setCarMonthlyData([]);
+    }
+  }, [selectedCarForHistory]);
 
   const generateAccountMonths = () => {
     const months = [];
