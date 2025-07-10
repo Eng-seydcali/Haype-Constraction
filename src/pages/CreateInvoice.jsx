@@ -671,7 +671,7 @@ const CreateInvoice = () => {
           </div>
 
           <div className="overflow-x-auto relative z-0">
-            <table className="min-w-full relative">
+            <table className="min-w-full relative z-0">
               <thead>
                 <tr className="border-b border-gray-200">
                   <th className="text-left py-2 px-2 text-sm font-medium text-gray-700">Item</th>
@@ -687,10 +687,10 @@ const CreateInvoice = () => {
               </thead>
               <tbody>
                 {invoiceItems.map((item, index) => (
-                  <tr key={item.id} className="border-b border-gray-100 relative">
+                  <tr key={item.id} className="border-b border-gray-100 relative z-0">
                     <td className="py-2 px-2">
                       {/* Searchable Item Dropdown - Like the image */}
-                      <div className="relative z-10">
+                      <div className="relative">
                         <SearchableDropdown
                         placeholder="Search & select item..."
                         value={(() => {
@@ -721,7 +721,7 @@ const CreateInvoice = () => {
                     </td>
                     <td className="py-2 px-2">
                       {/* Searchable Customer Dropdown - Like the image */}
-                      <div className="relative z-10">
+                      <div className="relative">
                         <SearchableDropdown
                         placeholder="Search & select customer..."
                         value={(() => {
@@ -842,26 +842,15 @@ const CreateInvoice = () => {
               
               {/* Right Column - Action Buttons */}
               <div className="flex flex-col justify-center space-y-4">
-                <div className="flex space-x-4">
-                  <Button
-                    onClick={handleSave}
-                    variant="outline"
-                    disabled={loading}
-                    className="flex-1"
-                  >
-                    <Save className="w-5 h-5 mr-2" />
-                    Create Invoice & Another Invoice
-                  </Button>
-                  
-                  <Button
-                    onClick={handleSave}
-                    disabled={loading}
-                    className="flex-1"
-                  >
-                    <Save className="w-5 h-5 mr-2" />
-                    Create Invoice & Another Invoice
-                  </Button>
-                </div>
+                <Button
+                  onClick={handleSave}
+                  variant="outline"
+                  disabled={loading}
+                  className="w-full"
+                >
+                  <Save className="w-5 h-5 mr-2" />
+                  Create Invoice & Another Invoice
+                </Button>
                 
                 <Button
                   onClick={handleSubmit}
@@ -874,7 +863,10 @@ const CreateInvoice = () => {
                       Creating & Distributing...
                     </>
                   ) : (
-                    'Create Invoice & Distribute'
+                    <>
+                      <Save className="w-5 h-5 mr-2" />
+                      Create Invoice & Distribute
+                    </>
                   )}
                 </Button>
               </div>
