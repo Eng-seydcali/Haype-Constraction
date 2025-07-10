@@ -671,7 +671,7 @@ const CreateInvoice = () => {
           </div>
 
           <div className="overflow-x-auto relative z-0">
-            <table className="min-w-full relative z-0">
+            <table className="min-w-full">
               <thead>
                 <tr className="border-b border-gray-200">
                   <th className="text-left py-2 px-2 text-sm font-medium text-gray-700">Item</th>
@@ -687,10 +687,10 @@ const CreateInvoice = () => {
               </thead>
               <tbody>
                 {invoiceItems.map((item, index) => (
-                  <tr key={item.id} className="border-b border-gray-100 relative z-0">
+                  <tr key={item.id} className="border-b border-gray-100">
                     <td className="py-2 px-2">
                       {/* Searchable Item Dropdown - Like the image */}
-                      <div className="relative">
+                      <div>
                         <SearchableDropdown
                         placeholder="Search & select item..."
                         value={(() => {
@@ -721,7 +721,7 @@ const CreateInvoice = () => {
                     </td>
                     <td className="py-2 px-2">
                       {/* Searchable Customer Dropdown - Like the image */}
-                      <div className="relative">
+                      <div>
                         <SearchableDropdown
                         placeholder="Search & select customer..."
                         value={(() => {
