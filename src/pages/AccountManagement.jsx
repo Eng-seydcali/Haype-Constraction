@@ -37,6 +37,10 @@ const AccountManagement = () => {
   const [showReopenModal, setShowReopenModal] = useState(false);
   const [selectedReopenAccount, setSelectedReopenAccount] = useState('');
 
+  // Monthly account view modal
+  const [showMonthlyModal, setShowMonthlyModal] = useState(false);
+  const [selectedMonthlyAccount, setSelectedMonthlyAccount] = useState(null);
+
   // Load data from database
   useEffect(() => {
     loadAllData();
@@ -395,6 +399,19 @@ const AccountManagement = () => {
     }
   };
 
+  const handleViewMonthlyAccount = (account) => {
+    setSelectedMonthlyAccount(account);
+    setShowMonthlyModal(true);
+    
+    if (account.status === 'Active') {
+      showSuccess('Active Account', `Viewing current active month: ${account.label}`);
+    } else if (account.status === 'Closed') {
+      showSuccess('Closed Account', `Viewing closed account: ${account.monthLabel || account.label}`);
+    } else {
+      showSuccess('Monthly Account', `Viewing account: ${account.label}`);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-96">
@@ -504,8 +521,8 @@ const AccountManagement = () => {
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center">
-            <FileText className="w-6 h-6 text-purple-600 mr-2" />
-            <h2 className="text-xl font-semibold text-gray-900">Closed Accounts Management</h2>
+            <Calendar className="w-6 h-6 text-purple-600 mr-2" />
+            <h2 className="text-xl font-semibold text-gray-900">Monthly Account History</h2>
           </div>
           <Button
             onClick={() => setShowReopenModal(true)}
@@ -516,41 +533,71 @@ const AccountManagement = () => {
           </Button>
         </div>
         
-        <div className="space-y-4">
+        {/* Monthly Account Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* Current Active Month */}
+          {accountMonths.filter(month => month.isCurrent).map((month) => (
+            <div 
+              key={month.value} 
+              className="border-2 border-green-300 rounded-lg p-4 bg-green-50 hover:bg-green-100 transition-colors cursor-pointer"
+              onClick={() => handleViewMonthlyAccount(month)}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="font-semibold text-green-900">{month.label}</h4>
+                  <p className="text-sm text-green-700">{month.value}</p>
+                </div>
+                <div className="text-right">
+                  <span className="inline-block px-3 py-1 text-sm font-medium rounded-full bg-green-100 text-green-800">
+                    Active
+                  </span>
+                  <p className="text-xs text-green-600 mt-1">Current</p>
+                </div>
+              </div>
+            </div>
+          ))}
+          
+          {/* Closed Accounts */}
           {closedAccounts.map((account) => (
-            <div key={account.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+            <div 
+              key={account.id} 
+              className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors cursor-pointer"
+              onClick={() => handleViewMonthlyAccount(account)}
+            >
               <div className="flex items-center justify-between">
                 <div>
                   <h4 className="font-semibold text-gray-900">{account.monthLabel}</h4>
-                  <p className="text-sm text-gray-600">Closed on {new Date(account.closedDate).toLocaleDateString()}</p>
+                  <p className="text-sm text-gray-600">{account.month}</p>
                 </div>
                 <div className="text-right">
-                  <span className={`inline-block px-3 py-1 text-sm font-medium rounded-full ${
-                    account.status === 'Closed' 
-                      ? 'bg-red-100 text-red-800' 
-                      : 'bg-green-100 text-green-800'
-                  }`}>
-                    {account.status}
+                  <span className="inline-block px-3 py-1 text-sm font-medium rounded-full bg-red-100 text-red-800">
+                    Closed
                   </span>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Profit: ${account.totalProfit.toLocaleString()}
+                  </p>
                 </div>
               </div>
-              
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-3">
+            </div>
+          ))}
+          
+          {/* Other Months (Previous months without data) */}
+          {accountMonths.filter(month => !month.isCurrent).slice(0, 6).map((month) => (
+            <div 
+              key={month.value} 
+              className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors cursor-pointer opacity-75"
+              onClick={() => handleViewMonthlyAccount(month)}
+            >
+              <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs text-gray-500">Total Balance</p>
-                  <p className="font-semibold text-blue-600">${account.totalBalance.toLocaleString()}</p>
+                  <h4 className="font-semibold text-gray-900">{month.label}</h4>
+                  <p className="text-sm text-gray-600">{month.value}</p>
                 </div>
-                <div>
-                  <p className="text-xs text-gray-500">Total Profit</p>
-                  <p className="font-semibold text-green-600">${account.totalProfit.toLocaleString()}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500">Cars</p>
-                  <p className="font-semibold text-gray-900">{account.carsCount}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500">Customers</p>
-                  <p className="font-semibold text-gray-900">{account.customersCount}</p>
+                <div className="text-right">
+                  <span className="inline-block px-3 py-1 text-sm font-medium rounded-full bg-gray-100 text-gray-800">
+                    {month.status}
+                  </span>
+                  <p className="text-xs text-gray-500 mt-1">No data</p>
                 </div>
               </div>
             </div>
@@ -830,6 +877,144 @@ const AccountManagement = () => {
                 >
                   <RotateCcw className="w-5 h-5 mr-2" />
                   Reopen Account
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Monthly Account View Modal */}
+      {showMonthlyModal && selectedMonthlyAccount && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    {selectedMonthlyAccount.monthLabel || selectedMonthlyAccount.label}
+                  </h3>
+                  <p className="text-sm text-gray-600">
+                    Account Details - {selectedMonthlyAccount.status || 'Active'}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowMonthlyModal(false)}
+                  className="p-2 text-gray-400 hover:text-gray-600 rounded-lg transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6">
+              {/* Account Status */}
+              <div className="mb-6">
+                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                  <div>
+                    <h4 className="font-semibold text-gray-900">Account Status</h4>
+                    <p className="text-sm text-gray-600">
+                      {selectedMonthlyAccount.value || selectedMonthlyAccount.month}
+                    </p>
+                  </div>
+                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                    selectedMonthlyAccount.status === 'Active' || selectedMonthlyAccount.isCurrent
+                      ? 'bg-green-100 text-green-800'
+                      : selectedMonthlyAccount.status === 'Closed'
+                      ? 'bg-red-100 text-red-800'
+                      : 'bg-gray-100 text-gray-800'
+                  }`}>
+                    {selectedMonthlyAccount.status || (selectedMonthlyAccount.isCurrent ? 'Active' : 'Closed')}
+                  </span>
+                </div>
+              </div>
+
+              {/* Financial Summary (for closed accounts) */}
+              {selectedMonthlyAccount.totalBalance && (
+                <div className="mb-6">
+                  <h4 className="font-semibold text-gray-900 mb-3">Financial Summary</h4>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="bg-blue-50 p-4 rounded-lg">
+                      <p className="text-sm text-blue-700">Total Balance</p>
+                      <p className="text-xl font-bold text-blue-900">
+                        ${selectedMonthlyAccount.totalBalance.toLocaleString()}
+                      </p>
+                    </div>
+                    <div className="bg-red-50 p-4 rounded-lg">
+                      <p className="text-sm text-red-700">Total Left</p>
+                      <p className="text-xl font-bold text-red-900">
+                        ${(selectedMonthlyAccount.totalLeft || 0).toLocaleString()}
+                      </p>
+                    </div>
+                    <div className="bg-green-50 p-4 rounded-lg">
+                      <p className="text-sm text-green-700">Final Profit</p>
+                      <p className="text-xl font-bold text-green-900">
+                        ${selectedMonthlyAccount.totalProfit.toLocaleString()}
+                      </p>
+                    </div>
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <p className="text-sm text-gray-700">Closed Date</p>
+                      <p className="text-sm font-semibold text-gray-900">
+                        {new Date(selectedMonthlyAccount.closedDate).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Current Month Info (for active account) */}
+              {(selectedMonthlyAccount.isCurrent || selectedMonthlyAccount.status === 'Active') && (
+                <div className="mb-6">
+                  <h4 className="font-semibold text-gray-900 mb-3">Current Month Status</h4>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="bg-blue-50 p-4 rounded-lg">
+                      <p className="text-sm text-blue-700">Current Balance</p>
+                      <p className="text-xl font-bold text-blue-900">
+                        ${profitData.totalCarBalance.toLocaleString()}
+                      </p>
+                    </div>
+                    <div className="bg-red-50 p-4 rounded-lg">
+                      <p className="text-sm text-red-700">Current Left</p>
+                      <p className="text-xl font-bold text-red-900">
+                        ${profitData.totalCarLeft.toLocaleString()}
+                      </p>
+                    </div>
+                    <div className="bg-orange-50 p-4 rounded-lg">
+                      <p className="text-sm text-orange-700">Current Payments</p>
+                      <p className="text-xl font-bold text-orange-900">
+                        ${profitData.totalCarPayments.toLocaleString()}
+                      </p>
+                    </div>
+                    <div className="bg-green-50 p-4 rounded-lg">
+                      <p className="text-sm text-green-700">Estimated Profit</p>
+                      <p className="text-xl font-bold text-green-900">
+                        ${profitData.estimatedProfit.toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Account Actions */}
+              <div className="flex justify-end space-x-4">
+                {selectedMonthlyAccount.status === 'Closed' && (
+                  <Button
+                    onClick={() => {
+                      setSelectedReopenAccount(selectedMonthlyAccount.id);
+                      setShowMonthlyModal(false);
+                      setShowReopenModal(true);
+                    }}
+                    variant="outline"
+                  >
+                    <RotateCcw className="w-5 h-5 mr-2" />
+                    Reopen Account
+                  </Button>
+                )}
+                <Button
+                  onClick={() => setShowMonthlyModal(false)}
+                  variant="outline"
+                >
+                  Close
                 </Button>
               </div>
             </div>

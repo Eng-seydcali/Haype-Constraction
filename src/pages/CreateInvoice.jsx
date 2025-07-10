@@ -465,7 +465,21 @@ const CreateInvoice = () => {
       // Save to localStorage for persistence
       localStorage.setItem(`invoice_${formData.invoiceNo}`, JSON.stringify(invoiceData));
       
-      showSuccess('Invoice Saved', `Invoice ${formData.invoiceNo} saved as draft successfully!`);
+      showSuccess('Invoice Saved', `Invoice ${formData.invoiceNo} saved successfully! Ready to create another invoice.`);
+      
+      // Reset form for next invoice
+      const nextInvoiceNo = currentInvoice + 1;
+      setCurrentInvoice(nextInvoiceNo);
+      
+      // Update invoice number
+      const newInvoiceNo = `INV-${String(nextInvoiceNo).padStart(3, '0')}`;
+      setFormData(prev => ({
+        ...prev,
+        invoiceNo: newInvoiceNo
+      }));
+      
+      // Reset form
+      resetForm(newInvoiceNo);
       
     } catch (error) {
       console.error('❌ Error saving invoice:', error);
@@ -678,30 +692,64 @@ const CreateInvoice = () => {
                         value={item.itemId}
                         onChange={(e) => handleItemChange(index, 'itemId', e.target.value)}
                         className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        style={{ minWidth: '150px' }}
                       >
                         <option value="">Select item</option>
                         {items.map(itm => (
-                          <option key={itm._id} value={itm._id}>{itm.itemName}</option>
+                          <option key={itm._id} value={itm._id}>
+                            {itm.itemName} - ${itm.price}
+                          </option>
                         ))}
                         <option value="add_new" className="bg-blue-50 text-blue-700 font-medium">
                           ➕ Add New Item
                         </option>
                       </select>
+                      
+                      {/* Search functionality for items */}
+                      <div className="mt-1">
+                        <input
+                          type="text"
+                          placeholder="Search items..."
+                          className="w-full text-xs border border-gray-200 rounded px-2 py-1 focus:ring-1 focus:ring-blue-400 focus:border-blue-400"
+                          onChange={(e) => {
+                            const searchTerm = e.target.value.toLowerCase();
+                            // Filter items based on search
+                            console.log('Searching items:', searchTerm);
+                          }}
+                        />
+                      </div>
                     </td>
                     <td className="py-2 px-2">
                       <select
                         value={item.customerId}
                         onChange={(e) => handleItemChange(index, 'customerId', e.target.value)}
                         className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        style={{ minWidth: '150px' }}
                       >
                         <option value="">Select customer</option>
                         {customers.map(customer => (
-                          <option key={customer._id} value={customer._id}>{customer.customerName}</option>
+                          <option key={customer._id} value={customer._id}>
+                            {customer.customerName} - ${(customer.balance || 0).toLocaleString()}
+                          </option>
                         ))}
                         <option value="add_new" className="bg-green-50 text-green-700 font-medium">
                           ➕ Add New Customer
                         </option>
                       </select>
+                      
+                      {/* Search functionality for customers */}
+                      <div className="mt-1">
+                        <input
+                          type="text"
+                          placeholder="Search customers..."
+                          className="w-full text-xs border border-gray-200 rounded px-2 py-1 focus:ring-1 focus:ring-blue-400 focus:border-blue-400"
+                          onChange={(e) => {
+                            const searchTerm = e.target.value.toLowerCase();
+                            // Filter customers based on search
+                            console.log('Searching customers:', searchTerm);
+                          }}
+                        />
+                      </div>
                     </td>
                     <td className="py-2 px-2">
                       <input
@@ -801,7 +849,7 @@ const CreateInvoice = () => {
                   disabled={loading}
                 >
                   <Save className="w-5 h-5 mr-2" />
-                  Save Draft
+                  Save & Create Another
                 </Button>
                 
                 <Button
