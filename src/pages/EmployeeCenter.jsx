@@ -145,8 +145,7 @@ const EmployeeCenter = () => {
   ];
 
   const handleEdit = (id) => {
-    console.log('Edit employee:', id);
-    // TODO: Navigate to edit page or open edit modal
+    navigate(`/employees/edit/${id}`);
   };
 
   if (loading) {

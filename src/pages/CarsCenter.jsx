@@ -136,7 +136,7 @@ const CarsCenter = () => {
   ];
 
   const handleEdit = (id) => {
-    console.log('Edit car:', id);
+    navigate(`/cars/edit/${id}`);
   };
 
   if (loading) {
