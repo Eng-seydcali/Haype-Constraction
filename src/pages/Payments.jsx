@@ -17,7 +17,7 @@ const Payments = () => {
   
   const [receiveFormData, setReceiveFormData] = useState({
     customerId: '',
-    paymentNo: '',
+    invoiceNo: '',
     date: new Date().toISOString().split('T')[0],
     amount: '',
     description: ''
@@ -153,6 +153,23 @@ const Payments = () => {
     showSuccess('Category Added', `${newCategoryName} has been added to categories`);
   };
 
+  const handleViewPayment = (payment) => {
+    alert(`Payment Details:\n\nPayment No: ${payment.paymentNo || 'N/A'}\nType: ${payment.type}\nAmount: $${payment.amount}\nDate: ${new Date(payment.paymentDate).toLocaleDateString()}\nDescription: ${payment.description || 'No description'}`);
+  };
+
+  // Auto-fill payment numbers
+  useEffect(() => {
+    if (nextPaymentNumber) {
+      setReceiveFormData(prev => ({
+        ...prev,
+        paymentNo: nextPaymentNumber
+      }));
+      setPaymentOutFormData(prev => ({
+        ...prev,
+        paymentNo: nextPaymentNumber
+      }));
+    }
+  }, [nextPaymentNumber]);
   const validateReceiveForm = () => {
     if (!receiveFormData.customerId) {
       showError('Validation Error', 'Please select a customer');
@@ -162,8 +179,8 @@ const Payments = () => {
       showError('Validation Error', 'Please enter a valid amount');
       return false;
     }
-    if (!receiveFormData.paymentNo) {
-      showError('Validation Error', 'Please enter payment number');
+    if (!receiveFormData.invoiceNo) {
+      showError('Validation Error', 'Please enter invoice number');
       return false;
     }
     return true;
@@ -203,7 +220,7 @@ const Payments = () => {
     try {
       const paymentData = {
         customerId: receiveFormData.customerId,
-        paymentNo: receiveFormData.paymentNo,
+        invoiceNo: receiveFormData.invoiceNo,
         amount: parseFloat(receiveFormData.amount),
         description: receiveFormData.description,
         paymentDate: receiveFormData.date
@@ -216,13 +233,13 @@ const Payments = () => {
       
       showSuccess(
         'Payment Received', 
-        `Payment of $${receiveFormData.amount} received from ${customer?.customerName} for payment ${receiveFormData.paymentNo}`
+        `Payment of $${receiveFormData.amount} received from ${customer?.customerName} for invoice ${receiveFormData.invoiceNo}`
       );
       
       setShowReceiveModal(false);
       setReceiveFormData({
         customerId: '',
-        paymentNo: '',
+        invoiceNo: '',
         date: new Date().toISOString().split('T')[0],
         amount: '',
         description: ''
@@ -486,13 +503,12 @@ const Payments = () => {
               />
 
               <FormInput
-                label="Payment Number"
-                name="paymentNo"
-                value={receiveFormData.paymentNo || nextPaymentNumber}
+                label="Invoice No"
+                name="invoiceNo"
+                value={receiveFormData.invoiceNo}
                 onChange={handleReceiveChange}
-                placeholder="e.g., PYN-0001"
+                placeholder="e.g., INV-001"
                 required
-                disabled
               />
 
               <FormInput
