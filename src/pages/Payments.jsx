@@ -195,6 +195,7 @@ const Payments = () => {
   const handleViewPayment = (payment) => {
     setSelectedPayment(payment);
     setShowViewPaymentModal(true);
+    console.log('👁️ Viewing payment:', payment);
   };
 
   const validateReceiveForm = () => {
