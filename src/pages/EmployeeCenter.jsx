@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Users, Plus, Search, Edit, Trash2, Eye, Filter } from 'lucide-react';
 import Button from '../components/Button';
 import Table from '../components/Table';
@@ -11,6 +11,7 @@ import Footer from '../components/Footer';
 
 const EmployeeCenter = () => {
   const { showSuccess, showError } = useToast();
+  const navigate = useNavigate();
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -145,7 +146,8 @@ const EmployeeCenter = () => {
   ];
 
   const handleEdit = (id) => {
-    navigate(`/employees/edit/${id}`);
+    // For now, show alert - you can create edit pages later
+    alert(`Edit employee with ID: ${id}\n\nYou can create /employees/edit/${id} page to handle editing.`);
   };
 
   if (loading) {

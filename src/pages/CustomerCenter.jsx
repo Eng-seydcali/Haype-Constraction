@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { UserCheck, Plus, Search, Edit, Trash2, Eye, Filter } from 'lucide-react';
 import Button from '../components/Button';
 import Table from '../components/Table';
@@ -11,6 +11,7 @@ import Footer from '../components/Footer';
 
 const CustomerCenter = () => {
   const { showSuccess, showError } = useToast();
+  const navigate = useNavigate();
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -29,17 +30,16 @@ const CustomerCenter = () => {
                            (customer.phoneNumber && customer.phoneNumber.includes(searchTerm));
       
       let matchesType = true;
-      if (customerTypeFilter === 'cash') {
+      if (paymentMethodFilter === 'cash') {
         matchesType = (customer.balance || 0) === 0;
-      } else if (customerTypeFilter === 'credit') {
+      } else if (paymentMethodFilter === 'credit') {
         matchesType = (customer.balance || 0) > 0;
       }
       
       return matchesSearch && matchesType;
     });
     setFilteredCustomers(filtered);
-  }
-  )
+  }, [searchTerm, paymentMethodFilter, customers]);
 
   const loadCustomers = async () => {
     try {
@@ -143,7 +143,8 @@ const CustomerCenter = () => {
   ];
 
   const handleEdit = (id) => {
-    console.log('Edit customer:', id);
+    // For now, show alert - you can create edit pages later
+    alert(`Edit customer with ID: ${id}\n\nYou can create /customers/edit/${id} page to handle editing.`);
   };
 
   if (loading) {

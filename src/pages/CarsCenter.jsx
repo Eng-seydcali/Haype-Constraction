@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Car, Plus, Search, Edit, Trash2, Eye, Filter } from 'lucide-react';
 import Button from '../components/Button';
 import Table from '../components/Table';
@@ -11,6 +11,7 @@ import Footer from '../components/Footer';
 
 const CarsCenter = () => {
   const { showSuccess, showError } = useToast();
+  const navigate = useNavigate();
   const [cars, setCars] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -136,7 +137,8 @@ const CarsCenter = () => {
   ];
 
   const handleEdit = (id) => {
-    navigate(`/cars/edit/${id}`);
+    // For now, show alert - you can create edit pages later
+    alert(`Edit car with ID: ${id}\n\nYou can create /cars/edit/${id} page to handle editing.`);
   };
 
   if (loading) {
