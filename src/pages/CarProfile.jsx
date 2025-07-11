@@ -143,8 +143,16 @@ const CarProfile = () => {
   const handleViewPayment = (payment) => {
     setSelectedPayment(payment);
     setShowViewPaymentModal(true);
-    console.log('Viewing payment details:', payment);
+    
+    // Set edit payment data
+    setEditPaymentData({
+      paymentNo: payment.paymentNo || '',
+      paymentDate: payment.paymentDate ? new Date(payment.paymentDate).toISOString().split('T')[0] : '',
+      amount: payment.amount || '',
+      description: payment.description || ''
+    });
   };
+  
   const handleEditPayment = (payment) => {
     setSelectedPayment(payment);
     setEditPaymentData({
@@ -301,7 +309,7 @@ const CarProfile = () => {
   const paymentColumns = [
     {
       header: 'Date',
-      accessor: 'paymentDate',
+      accessor: 'paymentDate', 
       render: (value) => format(new Date(value), 'MMM dd, yyyy')
     },
     {
@@ -321,7 +329,9 @@ const CarProfile = () => {
       header: 'Payment No',
       accessor: 'paymentNo',
       render: (value) => (
-        <span className="font-mono text-blue-600 font-medium">{value || 'N/A'}</span>
+        <span className="font-mono text-blue-600 font-medium">
+          {value || 'N/A'}
+        </span>
       )
     },
     {
@@ -701,7 +711,10 @@ const CarProfile = () => {
               
               <div className="flex justify-between mt-6 pt-4 border-t border-gray-200">
                 <Button variant="outline" onClick={() => setShowViewPaymentModal(false)}>Close</Button>
-                <Button variant="outline" onClick={() => handleEditPayment(selectedPayment)}>
+                <Button 
+                  variant="outline" 
+                  onClick={() => handleEditPayment(selectedPayment)}
+                >
                   <Edit className="w-4 h-4 mr-2" />
                   Edit Payment
                 </Button>
@@ -731,41 +744,61 @@ const CarProfile = () => {
             </div>
             
             <form onSubmit={handleUpdatePayment} className="p-6 space-y-4">
-              <FormInput
-                label="Payment Number"
-                name="paymentNo"
-                value={editPaymentData.paymentNo}
-                onChange={handleEditPaymentChange}
-                disabled
-              />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Payment Number
+                </label>
+                <input
+                  name="paymentNo"
+                  value={editPaymentData.paymentNo}
+                  onChange={handleEditPaymentChange}
+                  className="w-full px-4 py-2 border rounded-lg border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  disabled
+                />
+              </div>
               
-              <FormInput
-                label="Date"
-                name="paymentDate"
-                type="date"
-                value={editPaymentData.paymentDate}
-                onChange={handleEditPaymentChange}
-                required
-              />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Date
+                </label>
+                <input
+                  name="paymentDate"
+                  type="date"
+                  value={editPaymentData.paymentDate}
+                  onChange={handleEditPaymentChange}
+                  className="w-full px-4 py-2 border rounded-lg border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  required
+                />
+              </div>
               
-              <FormInput
-                label="Amount"
-                name="amount"
-                type="number"
-                value={editPaymentData.amount}
-                onChange={handleEditPaymentChange}
-                min="0"
-                step="0.01"
-                required
-              />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Amount
+                </label>
+                <input
+                  name="amount"
+                  type="number"
+                  value={editPaymentData.amount}
+                  onChange={handleEditPaymentChange}
+                  className="w-full px-4 py-2 border rounded-lg border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  min="0"
+                  step="0.01"
+                  required
+                />
+              </div>
               
-              <FormInput
-                label="Description"
-                name="description"
-                value={editPaymentData.description}
-                onChange={handleEditPaymentChange}
-                placeholder="Payment description"
-              />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Description
+                </label>
+                <input
+                  name="description"
+                  value={editPaymentData.description}
+                  onChange={handleEditPaymentChange}
+                  className="w-full px-4 py-2 border rounded-lg border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  placeholder="Payment description"
+                />
+              </div>
               
               <div className="flex space-x-4 pt-4">
                 <Button
