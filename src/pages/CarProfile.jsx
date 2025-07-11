@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Car, User, DollarSign, Calendar, Filter, Printer, Edit, Eye, CreditCard } from 'lucide-react';
+import { ArrowLeft, Car, User, DollarSign, Calendar, Filter, Printer, Edit, Eye, CreditCard, FileText, Trash2 } from 'lucide-react';
 import Button from '../components/Button';
 import Table from '../components/Table';
 import DateFilter from '../components/DateFilter';
@@ -25,6 +25,8 @@ const CarProfile = () => {
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [modalMode, setModalMode] = useState('view');
   const [showModal, setShowModal] = useState(false);
+  const [showViewPaymentModal, setShowViewPaymentModal] = useState(false);
+  const [selectedPayment, setSelectedPayment] = useState(null);
   
   const [transactions, setTransactions] = useState([]);
   const [payments, setPayments] = useState([]);
@@ -131,10 +133,28 @@ const CarProfile = () => {
     alert(`Filter applied for ${car?.carName} with ${filteredTransactions.length} transactions and ${filteredPayments.length} payments found`);
   };
 
+  const handleViewPayment = (payment) => {
+    setSelectedPayment(payment);
+    setShowViewPaymentModal(true);
+  };
+
   const handleViewInvoice = (invoiceNo) => {
     setSelectedInvoice(invoiceNo);
     setModalMode('view');
     setShowModal(true);
+  };
+
+  const handleDeletePayment = async (payment) => {
+    if (window.confirm(`Are you sure you want to delete this payment of $${payment.amount}?`)) {
+      try {
+        await paymentsAPI.delete(payment._id);
+        showSuccess('Payment Deleted', 'Payment has been deleted successfully');
+        loadPayments();
+      } catch (error) {
+        console.error('❌ Error deleting payment:', error);
+        showError('Delete Failed', 'Failed to delete payment');
+      }
+    }
   };
 
   const handleEditInvoice = (invoiceNo) => {
@@ -239,6 +259,13 @@ const CarProfile = () => {
       )
     },
     {
+      header: 'Payment No',
+      accessor: 'paymentNo',
+      render: (value) => (
+        <span className="font-mono text-blue-600">{value || 'N/A'}</span>
+      )
+    },
+    {
       header: 'Invoice No',
       accessor: 'invoiceNo',
       render: (value) => (
@@ -268,6 +295,37 @@ const CarProfile = () => {
       accessor: 'accountMonth',
       render: (value) => (
         <span className="text-gray-600">{value || 'N/A'}</span>
+      )
+    },
+    {
+      header: 'Actions',
+      accessor: '_id',
+      render: (value, row) => (
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={() => handleViewPayment(row)}
+            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+            title="View Details"
+          >
+            <Eye className="w-4 h-4" />
+          </button>
+          {row.invoiceNo && (
+            <button
+              onClick={() => handleViewInvoice(row.invoiceNo)}
+              className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+              title="View Invoice"
+            >
+              <FileText className="w-4 h-4" />
+            </button>
+          )}
+          <button
+            onClick={() => handleDeletePayment(row)}
+            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+            title="Delete Payment"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
       )
     }
   ];
@@ -492,6 +550,108 @@ const CarProfile = () => {
         invoiceNo={selectedInvoice}
         mode={modalMode}
       />
+      
+      {/* View Payment Modal */}
+      {showViewPaymentModal && selectedPayment && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <CreditCard className="w-6 h-6 text-blue-600 mr-2" />
+                  <h3 className="text-lg font-semibold text-gray-900">Payment Details</h3>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowViewPaymentModal(false)}
+                >
+                  Close
+                </Button>
+              </div>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <div className="flex items-center mb-4">
+                  <div className={`p-2 rounded-full ${
+                    selectedPayment.type === 'receive' ? 'bg-green-100' : 'bg-red-100'
+                  }`}>
+                    {selectedPayment.type === 'receive' ? (
+                      <ArrowDownLeft className="w-5 h-5 text-green-600" />
+                    ) : (
+                      <ArrowUpRight className="w-5 h-5 text-red-600" />
+                    )}
+                  </div>
+                  <div className="ml-3">
+                    <h4 className="font-semibold text-gray-900">
+                      {selectedPayment.type === 'receive' ? 'Payment Received' : 'Payment Out'}
+                    </h4>
+                    <p className="text-sm text-gray-600">
+                      {new Date(selectedPayment.paymentDate).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Payment Number:</span>
+                    <span className="font-medium">{selectedPayment.paymentNo || 'N/A'}</span>
+                  </div>
+                  
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Amount:</span>
+                    <span className={`font-semibold ${
+                      selectedPayment.type === 'receive' ? 'text-green-600' : 'text-red-600'
+                    }`}>
+                      {selectedPayment.type === 'receive' ? '+' : '-'}${selectedPayment.amount.toLocaleString()}
+                    </span>
+                  </div>
+                  
+                  {selectedPayment.customerId && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Customer:</span>
+                      <span className="font-medium">
+                        {customers.find(c => c._id === selectedPayment.customerId)?.customerName || 'Unknown Customer'}
+                      </span>
+                    </div>
+                  )}
+                  
+                  {selectedPayment.carId && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Car:</span>
+                      <span className="font-medium">
+                        {cars.find(c => c._id === selectedPayment.carId)?.carName || 'Unknown Car'}
+                      </span>
+                    </div>
+                  )}
+                  
+                  {selectedPayment.accountMonth && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Account Month:</span>
+                      <span className="font-medium">{selectedPayment.accountMonth}</span>
+                    </div>
+                  )}
+                  
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Description:</span>
+                    <span className="font-medium">{selectedPayment.description || 'No description'}</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="text-center">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowViewPaymentModal(false)}
+                >
+                  Close
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 <Footer/>
 
     </div>

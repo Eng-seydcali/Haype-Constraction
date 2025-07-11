@@ -100,13 +100,9 @@ const Payments = () => {
   const generateNextPaymentNumber = () => {
     // Find the highest payment number
     const paymentNumbers = payments
-      .map(payment => {
-        if (payment.paymentNo && payment.paymentNo.startsWith('PYN-')) {
-          const num = parseInt(payment.paymentNo.replace('PYN-', ''));
-          return isNaN(num) ? 0 : num;
-        }
-        return 0;
-      });
+      .filter(payment => payment.paymentNo && payment.paymentNo.startsWith('PYN-'))
+      .map(payment => parseInt(payment.paymentNo.replace('PYN-', '')))
+      .filter(num => !isNaN(num));
     
     const maxNumber = paymentNumbers.length > 0 ? Math.max(...paymentNumbers) : 0;
     const nextNumber = maxNumber + 1;
