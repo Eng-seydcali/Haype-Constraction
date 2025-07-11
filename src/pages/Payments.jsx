@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CreditCard, Plus, ArrowDownLeft, ArrowUpRight, Building2, Calendar } from 'lucide-react';
+import { CreditCard, Plus, ArrowDownLeft, ArrowUpRight, Building2, Calendar, Eye } from 'lucide-react';
 import Button from '../components/Button';
 import FormInput from '../components/FormInput';
 import FormSelect from '../components/FormSelect';
@@ -15,9 +15,12 @@ const Payments = () => {
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
   
+  // Payment number state
+  const [nextPaymentNumber, setNextPaymentNumber] = useState('PYN-0001');
+  
   const [receiveFormData, setReceiveFormData] = useState({
     customerId: '',
-    invoiceNo: '',
+    paymentNo: '',
     date: new Date().toISOString().split('T')[0],
     amount: '',
     description: ''
@@ -27,7 +30,7 @@ const Payments = () => {
     carId: '',
     category: '',
     accountMonth: '',
-    invoiceNo: '',
+    paymentNo: '',
     date: new Date().toISOString().split('T')[0],
     amount: '',
     description: ''
@@ -52,10 +55,15 @@ const Payments = () => {
   const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
 
+  // Modal for viewing payment details
+  const [showViewPaymentModal, setShowViewPaymentModal] = useState(false);
+  const [selectedPayment, setSelectedPayment] = useState(null);
+
   // Load data from database
   useEffect(() => {
     loadAllData();
     generateAccountMonths();
+    generateNextPaymentNumber();
   }, []);
 
   const generateAccountMonths = () => {
@@ -89,6 +97,35 @@ const Payments = () => {
     }
   };
 
+  const generateNextPaymentNumber = () => {
+    // Find the highest payment number
+    const paymentNumbers = payments
+      .map(payment => {
+        if (payment.paymentNo && payment.paymentNo.startsWith('PYN-')) {
+          const num = parseInt(payment.paymentNo.replace('PYN-', ''));
+          return isNaN(num) ? 0 : num;
+        }
+        return 0;
+      });
+    
+    const maxNumber = paymentNumbers.length > 0 ? Math.max(...paymentNumbers) : 0;
+    const nextNumber = maxNumber + 1;
+    const nextPaymentNo = `PYN-${String(nextNumber).padStart(4, '0')}`;
+    
+    setNextPaymentNumber(nextPaymentNo);
+    
+    // Set in both forms
+    setReceiveFormData(prev => ({
+      ...prev,
+      paymentNo: nextPaymentNo
+    }));
+    
+    setPaymentOutFormData(prev => ({
+      ...prev,
+      paymentNo: nextPaymentNo
+    }));
+  };
+
   const loadAllData = async () => {
     try {
       setLoadingData(true);
@@ -107,6 +144,12 @@ const Payments = () => {
         cars: carsResponse.data.length,
         payments: paymentsResponse.data.length
       });
+      
+      // Generate next payment number after loading payments
+      setTimeout(() => {
+        generateNextPaymentNumber();
+      }, 500);
+      
     } catch (error) {
       console.error('❌ Error loading payment data:', error);
       showError('Load Failed', 'Failed to load required data for payments');
@@ -154,22 +197,10 @@ const Payments = () => {
   };
 
   const handleViewPayment = (payment) => {
-    alert(`Payment Details:\n\nPayment No: ${payment.paymentNo || 'N/A'}\nType: ${payment.type}\nAmount: $${payment.amount}\nDate: ${new Date(payment.paymentDate).toLocaleDateString()}\nDescription: ${payment.description || 'No description'}`);
+    setSelectedPayment(payment);
+    setShowViewPaymentModal(true);
   };
 
-  // Auto-fill payment numbers
-  useEffect(() => {
-    if (nextPaymentNumber) {
-      setReceiveFormData(prev => ({
-        ...prev,
-        paymentNo: nextPaymentNumber
-      }));
-      setPaymentOutFormData(prev => ({
-        ...prev,
-        paymentNo: nextPaymentNumber
-      }));
-    }
-  }, [nextPaymentNumber]);
   const validateReceiveForm = () => {
     if (!receiveFormData.customerId) {
       showError('Validation Error', 'Please select a customer');
@@ -179,8 +210,8 @@ const Payments = () => {
       showError('Validation Error', 'Please enter a valid amount');
       return false;
     }
-    if (!receiveFormData.invoiceNo) {
-      showError('Validation Error', 'Please enter invoice number');
+    if (!receiveFormData.paymentNo) {
+      showError('Validation Error', 'Please enter payment number');
       return false;
     }
     return true;
@@ -203,8 +234,8 @@ const Payments = () => {
       showError('Validation Error', 'Please enter a valid amount');
       return false;
     }
-    if (!paymentOutFormData.invoiceNo) {
-      showError('Validation Error', 'Please enter invoice number');
+    if (!paymentOutFormData.paymentNo) {
+      showError('Validation Error', 'Please enter payment number');
       return false;
     }
     return true;
@@ -220,7 +251,7 @@ const Payments = () => {
     try {
       const paymentData = {
         customerId: receiveFormData.customerId,
-        invoiceNo: receiveFormData.invoiceNo,
+        paymentNo: receiveFormData.paymentNo,
         amount: parseFloat(receiveFormData.amount),
         description: receiveFormData.description,
         paymentDate: receiveFormData.date
@@ -233,13 +264,20 @@ const Payments = () => {
       
       showSuccess(
         'Payment Received', 
-        `Payment of $${receiveFormData.amount} received from ${customer?.customerName} for invoice ${receiveFormData.invoiceNo}`
+        `Payment of $${receiveFormData.amount} received from ${customer?.customerName} with payment number ${receiveFormData.paymentNo}`
       );
       
       setShowReceiveModal(false);
+      
+      // Generate next payment number
+      const nextNum = parseInt(nextPaymentNumber.replace('PYN-', '')) + 1;
+      const newPaymentNo = `PYN-${String(nextNum).padStart(4, '0')}`;
+      setNextPaymentNumber(newPaymentNo);
+      
+      // Reset form with new payment number
       setReceiveFormData({
         customerId: '',
-        invoiceNo: '',
+        paymentNo: newPaymentNo,
         date: new Date().toISOString().split('T')[0],
         amount: '',
         description: ''
@@ -276,7 +314,7 @@ const Payments = () => {
       const paymentData = {
         accountType: 'car',
         recipientId: paymentOutFormData.carId,
-        invoiceNo: paymentOutFormData.invoiceNo,
+        paymentNo: paymentOutFormData.paymentNo,
         amount: parseFloat(paymentOutFormData.amount),
         description: `${paymentOutFormData.category}: ${paymentOutFormData.description}`,
         paymentDate: paymentOutFormData.date,
@@ -301,15 +339,22 @@ const Payments = () => {
       
       showSuccess(
         'Payment Processed',
-        `Payment of $${paymentOutFormData.amount} processed for ${selectedCar.carName} - ${selectedCategory?.label} from ${selectedMonth?.label} account`
+        `Payment of $${paymentOutFormData.amount} processed for ${selectedCar.carName} - ${selectedCategory?.label} from ${selectedMonth?.label} account with payment number ${paymentOutFormData.paymentNo}`
       );
       
       setShowPaymentOutModal(false);
+      
+      // Generate next payment number
+      const nextNum = parseInt(nextPaymentNumber.replace('PYN-', '')) + 1;
+      const newPaymentNo = `PYN-${String(nextNum).padStart(4, '0')}`;
+      setNextPaymentNumber(newPaymentNo);
+      
+      // Reset form with new payment number
       setPaymentOutFormData({
         carId: '',
         category: '',
         accountMonth: accountMonths[0]?.value || '',
-        invoiceNo: '',
+        paymentNo: newPaymentNo,
         date: new Date().toISOString().split('T')[0],
         amount: '',
         description: ''
@@ -446,21 +491,30 @@ const Payments = () => {
                         {payment.type === 'receive' ? 'Payment Received' : 'Payment Out'}
                       </p>
                       <p className="text-sm text-gray-600">
-                        {payment.invoiceNo && `Invoice: ${payment.invoiceNo}`}
+                        {payment.paymentNo && `Payment: ${payment.paymentNo}`}
                         {payment.accountMonth && ` - ${payment.accountMonth}`}
                         {payment.description && ` - ${payment.description}`}
                       </p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className={`font-semibold ${
-                      payment.type === 'receive' ? 'text-green-600' : 'text-red-600'
-                    }`}>
-                      {payment.type === 'receive' ? '+' : '-'}${payment.amount.toLocaleString()}
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      {new Date(payment.paymentDate).toLocaleDateString()}
-                    </p>
+                  <div className="flex items-center">
+                    <div className="text-right mr-4">
+                      <p className={`font-semibold ${
+                        payment.type === 'receive' ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        {payment.type === 'receive' ? '+' : '-'}${payment.amount.toLocaleString()}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        {new Date(payment.paymentDate).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleViewPayment(payment)}
+                      className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                      title="View Details"
+                    >
+                      <Eye className="w-5 h-5" />
+                    </button>
                   </div>
                 </div>
               ))}
@@ -502,12 +556,13 @@ const Payments = () => {
               />
 
               <FormInput
-                label="Invoice No"
-                name="invoiceNo"
-                value={receiveFormData.invoiceNo}
+                label="Payment Number"
+                name="paymentNo"
+                value={receiveFormData.paymentNo}
                 onChange={handleReceiveChange}
-                placeholder="e.g., INV-001"
+                placeholder="e.g., PYN-0001"
                 required
+                disabled
               />
 
               <FormInput
@@ -636,12 +691,13 @@ const Payments = () => {
               />
 
               <FormInput
-                label="Invoice No"
-                name="invoiceNo"
-                value={paymentOutFormData.invoiceNo}
+                label="Payment Number"
+                name="paymentNo"
+                value={paymentOutFormData.paymentNo}
                 onChange={handlePaymentOutChange}
-                placeholder="e.g., INV-001"
+                placeholder="e.g., PYN-0001"
                 required
+                disabled
               />
 
               <FormInput
@@ -724,6 +780,108 @@ const Payments = () => {
                 </Button>
                 <Button onClick={handleAddCategory} className="flex-1">
                   Add Category
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* View Payment Modal */}
+      {showViewPaymentModal && selectedPayment && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <CreditCard className="w-6 h-6 text-blue-600 mr-2" />
+                  <h3 className="text-lg font-semibold text-gray-900">Payment Details</h3>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowViewPaymentModal(false)}
+                >
+                  Close
+                </Button>
+              </div>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <div className="flex items-center mb-4">
+                  <div className={`p-2 rounded-full ${
+                    selectedPayment.type === 'receive' ? 'bg-green-100' : 'bg-red-100'
+                  }`}>
+                    {selectedPayment.type === 'receive' ? (
+                      <ArrowDownLeft className="w-5 h-5 text-green-600" />
+                    ) : (
+                      <ArrowUpRight className="w-5 h-5 text-red-600" />
+                    )}
+                  </div>
+                  <div className="ml-3">
+                    <h4 className="font-semibold text-gray-900">
+                      {selectedPayment.type === 'receive' ? 'Payment Received' : 'Payment Out'}
+                    </h4>
+                    <p className="text-sm text-gray-600">
+                      {new Date(selectedPayment.paymentDate).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Payment Number:</span>
+                    <span className="font-medium">{selectedPayment.paymentNo || 'N/A'}</span>
+                  </div>
+                  
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Amount:</span>
+                    <span className={`font-semibold ${
+                      selectedPayment.type === 'receive' ? 'text-green-600' : 'text-red-600'
+                    }`}>
+                      {selectedPayment.type === 'receive' ? '+' : '-'}${selectedPayment.amount.toLocaleString()}
+                    </span>
+                  </div>
+                  
+                  {selectedPayment.customerId && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Customer:</span>
+                      <span className="font-medium">
+                        {customers.find(c => c._id === selectedPayment.customerId)?.customerName || 'Unknown Customer'}
+                      </span>
+                    </div>
+                  )}
+                  
+                  {selectedPayment.carId && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Car:</span>
+                      <span className="font-medium">
+                        {cars.find(c => c._id === selectedPayment.carId)?.carName || 'Unknown Car'}
+                      </span>
+                    </div>
+                  )}
+                  
+                  {selectedPayment.accountMonth && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Account Month:</span>
+                      <span className="font-medium">{selectedPayment.accountMonth}</span>
+                    </div>
+                  )}
+                  
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Description:</span>
+                    <span className="font-medium">{selectedPayment.description || 'No description'}</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="text-center">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowViewPaymentModal(false)}
+                >
+                  Close
                 </Button>
               </div>
             </div>
