@@ -259,7 +259,7 @@ const Payments = () => {
       const paymentData = {
         accountType: 'car',
         recipientId: paymentOutFormData.carId,
-        invoiceNo: paymentOutFormData.invoiceNo,
+        paymentNo: paymentOutFormData.paymentNo,
         amount: parseFloat(paymentOutFormData.amount),
         description: `${paymentOutFormData.category}: ${paymentOutFormData.description}`,
         paymentDate: paymentOutFormData.date,
@@ -285,7 +285,7 @@ const Payments = () => {
       
       showSuccess(
         'Payment Processed',
-        `Payment of $${paymentOutFormData.amount} processed for ${selectedCar?.carName} - ${selectedCategory?.label} from ${selectedMonth?.label} account`
+        `Payment ${paymentOutFormData.paymentNo} of $${paymentOutFormData.amount} processed for ${selectedCar?.carName} - ${selectedCategory?.label}`
       );
       
       setShowPaymentOutModal(false);
@@ -293,7 +293,7 @@ const Payments = () => {
         carId: '',
         category: '',
         accountMonth: accountMonths[0]?.value || '',
-        invoiceNo: '',
+        paymentNo: '',
         date: new Date().toISOString().split('T')[0],
         amount: '',
         description: ''
@@ -301,6 +301,7 @@ const Payments = () => {
       
       // Reload payments
       loadAllData();
+      generateNextPaymentNumber();
       
     } catch (error) {
       console.error('❌ Error processing payment:', error);

@@ -202,6 +202,40 @@ const CustomerCenter = () => {
         </div>
       </div>
 
+      {/* Credit Customers Summary */}
+      {customerTypeFilter === 'credit' && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+          <h3 className="text-lg font-semibold text-red-900 mb-4">💳 Credit Customers Summary</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-white rounded-lg p-4 border border-red-200">
+              <p className="text-sm text-red-700">Total Credit Customers</p>
+              <p className="text-2xl font-bold text-red-900">
+                {customers.filter(customer => (customer.balance || 0) > 0).length}
+              </p>
+            </div>
+            <div className="bg-white rounded-lg p-4 border border-red-200">
+              <p className="text-sm text-red-700">Total Outstanding Amount</p>
+              <p className="text-2xl font-bold text-red-600">
+                ${customers
+                  .filter(customer => (customer.balance || 0) > 0)
+                  .reduce((sum, customer) => sum + (customer.balance || 0), 0)
+                  .toLocaleString()}
+              </p>
+            </div>
+            <div className="bg-white rounded-lg p-4 border border-red-200">
+              <p className="text-sm text-red-700">Average Credit Amount</p>
+              <p className="text-2xl font-bold text-red-600">
+                ${(() => {
+                  const creditCustomers = customers.filter(customer => (customer.balance || 0) > 0);
+                  const totalCredit = creditCustomers.reduce((sum, customer) => sum + (customer.balance || 0), 0);
+                  return creditCustomers.length > 0 ? Math.round(totalCredit / creditCustomers.length).toLocaleString() : 0;
+                })()}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Customers Table */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">
         <Table 
