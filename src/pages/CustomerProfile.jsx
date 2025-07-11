@@ -222,12 +222,16 @@ const CustomerProfile = () => {
   const handleDeletePayment = async (payment) => {
     if (window.confirm(`Are you sure you want to delete this payment of $${payment.amount}?`)) {
       try {
+        setLoading(true);
         await paymentsAPI.delete(payment._id);
-        showSuccess('Payment Deleted', 'Payment has been deleted successfully');
+        console.log('✅ Payment deleted:', payment._id);
+        showSuccess('Payment Deleted', `Payment of $${payment.amount} has been deleted successfully`);
         loadPayments();
       } catch (error) {
         console.error('❌ Error deleting payment:', error);
-        showError('Delete Failed', 'Failed to delete payment');
+        showError('Delete Failed', error.response?.data?.error || 'Failed to delete payment. Please try again.');
+      } finally {
+        setLoading(false);
       }
     }
   };
@@ -354,7 +358,7 @@ const CustomerProfile = () => {
       accessor: 'paymentNo',
       render: (value) => (
         <span className="font-mono text-blue-600 font-medium">
-          {value || 'N/A'}
+          {value || payment.paymentNo || 'N/A'}
         </span>
       )
     },

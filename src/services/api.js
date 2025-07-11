@@ -96,7 +96,10 @@ export const paymentsAPI = {
   paymentOut: (paymentData) => api.post('/payments/payment-out', paymentData),
   update: (id, paymentData) => api.put(`/payments/${id}`, paymentData),
   getAll: () => api.get('/payments'),
-  delete: (id) => api.delete(`/payments/${id}`),
+  delete: (id) => {
+    console.log('🗑️ Deleting payment with ID:', id);
+    return api.delete(`/payments/${id}`);
+  },
 };
 
 // Dashboard API
