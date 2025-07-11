@@ -1,14 +1,25 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Backend URL - Update this to your backend URL
-const API_BASE_URL = 'http://localhost:5000/api'; // Change to your backend URL
+// Backend URL - Multiple options for different environments
+const API_BASE_URL = __DEV__ 
+  ? 'http://10.0.2.2:5000/api'  // Android emulator
+  : 'https://your-backend-url.com/api'; // Production URL
+
+// Alternative URLs to try
+const FALLBACK_URLS = [
+  'http://localhost:5000/api',
+  'http://127.0.0.1:5000/api',
+  'http://192.168.1.100:5000/api', // Replace with your local IP
+  'http://10.0.2.2:5000/api'
+];
 
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
+  timeout: 10000, // 10 second timeout
 });
 
 // Set auth token
@@ -38,6 +49,9 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
+    console.log('API Error:', error.message);
+    console.log('API URL:', error.config?.baseURL);
+    
     if (error.response?.status === 401) {
       await AsyncStorage.removeItem('authToken');
       // Navigate to login

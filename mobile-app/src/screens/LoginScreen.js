@@ -31,7 +31,9 @@ const LoginScreen = ({ onLogin }) => {
 
     setLoading(true);
     try {
+      console.log('Attempting login with:', { email });
       const response = await authAPI.login({ email, password });
+      console.log('Login response:', response.data);
       
       if (response.data.success) {
         const { token } = response.data;
@@ -42,7 +44,19 @@ const LoginScreen = ({ onLogin }) => {
         Alert.alert('Login Failed', 'Invalid credentials');
       }
     } catch (error) {
-      Alert.alert('Login Error', error.response?.data?.error || 'Login failed');
+      console.error('Login error:', error);
+      
+      let errorMessage = 'Login failed';
+      
+      if (error.code === 'NETWORK_ERROR' || error.message.includes('Network Error')) {
+        errorMessage = 'Cannot connect to server. Please check your internet connection.';
+      } else if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      Alert.alert('Login Error', errorMessage);
     } finally {
       setLoading(false);
     }
@@ -67,6 +81,7 @@ const LoginScreen = ({ onLogin }) => {
               style={styles.input}
               keyboardType="email-address"
               autoCapitalize="none"
+              placeholder="admin@haype.com"
             />
             
             <TextInput
@@ -76,6 +91,7 @@ const LoginScreen = ({ onLogin }) => {
               mode="outlined"
               secureTextEntry
               style={styles.input}
+              placeholder="password"
             />
             
             <Button
