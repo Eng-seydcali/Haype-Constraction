@@ -94,6 +94,7 @@ export const invoicesAPI = {
 export const paymentsAPI = {
   receive: (paymentData) => api.post('/payments/receive', paymentData),
   paymentOut: (paymentData) => api.post('/payments/payment-out', paymentData),
+  update: (id, paymentData) => api.put(`/payments/${id}`, paymentData),
   getAll: () => api.get('/payments'),
   delete: (id) => api.delete(`/payments/${id}`),
 };

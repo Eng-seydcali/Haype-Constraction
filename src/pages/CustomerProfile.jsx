@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, User, Phone, DollarSign, Calendar, Filter, Printer, Edit, Eye, CreditCard, FileText, Trash2, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
+import { ArrowLeft, User, Phone, DollarSign, Calendar, Filter, Printer, Edit, Eye, CreditCard, FileText, Trash2, ArrowDownLeft, ArrowUpRight, X } from 'lucide-react';
 import Button from '../components/Button';
 import Table from '../components/Table';
 import DateFilter from '../components/DateFilter';
@@ -26,7 +26,14 @@ const CustomerProfile = () => {
   const [modalMode, setModalMode] = useState('view');
   const [showModal, setShowModal] = useState(false);
   const [showViewPaymentModal, setShowViewPaymentModal] = useState(false);
+  const [showEditPaymentModal, setShowEditPaymentModal] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState(null);
+  const [editPaymentData, setEditPaymentData] = useState({
+    paymentNo: '',
+    paymentDate: '',
+    amount: '',
+    description: ''
+  });
   
   const [transactions, setTransactions] = useState([]);
   const [payments, setPayments] = useState([]);
@@ -144,7 +151,59 @@ const CustomerProfile = () => {
   const handleViewPayment = (payment) => {
     setSelectedPayment(payment);
     setShowViewPaymentModal(true);
+    console.log('Viewing payment details:', payment);
   };
+  const handleEditPayment = (payment) => {
+    setSelectedPayment(payment);
+    setEditPaymentData({
+      paymentNo: payment.paymentNo || '',
+      paymentDate: payment.paymentDate ? new Date(payment.paymentDate).toISOString().split('T')[0] : '',
+      amount: payment.amount || '',
+      description: payment.description || ''
+    });
+    setShowEditPaymentModal(true);
+  };
+
+  const handleEditPaymentChange = (e) => {
+    const { name, value } = e.target;
+    setEditPaymentData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleUpdatePayment = async (e) => {
+    e.preventDefault();
+    
+    if (!editPaymentData.amount || !editPaymentData.paymentDate) {
+      showError('Validation Error', 'Please fill in all required fields');
+      return;
+    }
+    
+    try {
+      // Update payment in database
+      const updatedPayment = {
+        ...selectedPayment,
+        paymentDate: editPaymentData.paymentDate,
+        amount: parseFloat(editPaymentData.amount),
+        description: editPaymentData.description
+      };
+      
+      // Call API to update payment
+      await paymentsAPI.update(selectedPayment._id, updatedPayment);
+      
+      showSuccess('Payment Updated', 'Payment has been updated successfully');
+      
+      // Close modal and refresh data
+      setShowEditPaymentModal(false);
+      loadPayments();
+      
+    } catch (error) {
+      console.error('❌ Error updating payment:', error);
+      showError('Update Failed', 'Failed to update payment. Please try again.');
+    }
+  };
+
 
   const handleViewInvoice = (invoiceNo) => {
     setSelectedInvoice(invoiceNo);
@@ -286,7 +345,7 @@ const CustomerProfile = () => {
       header: 'Payment No',
       accessor: 'paymentNo',
       render: (value) => (
-        <span className="font-mono text-blue-600">{value || 'N/A'}</span>
+        <span className="font-mono text-blue-600 font-medium">{value || 'N/A'}</span>
       )
     },
     {
@@ -618,7 +677,7 @@ const CustomerProfile = () => {
       {/* View Payment Modal */}
       {showViewPaymentModal && selectedPayment && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 overflow-hidden">
             <div className="p-6 border-b border-gray-200">
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
@@ -640,7 +699,7 @@ const CustomerProfile = () => {
                 <div className="flex items-center mb-4">
                   <div className={`p-2 rounded-full ${
                     selectedPayment.type === 'receive' ? 'bg-green-100' : 'bg-red-100'
-                  }`}>
+                  } flex-shrink-0`}>
                     {selectedPayment.type === 'receive' ? (
                       <ArrowDownLeft className="w-5 h-5 text-green-600" />
                     ) : (
@@ -660,7 +719,7 @@ const CustomerProfile = () => {
                 <div className="space-y-3">
                   <div className="flex justify-between">
                     <span className="text-gray-600">Payment Number:</span>
-                    <span className="font-medium">{selectedPayment.paymentNo || 'N/A'}</span>
+                    <span className="font-medium text-blue-600">{selectedPayment.paymentNo || 'N/A'}</span>
                   </div>
                   
                   <div className="flex justify-between">
@@ -675,8 +734,8 @@ const CustomerProfile = () => {
                   {selectedPayment.customerId && (
                     <div className="flex justify-between">
                       <span className="text-gray-600">Customer:</span>
-                      <span className="font-medium">
-                        {customer?.customerName || 'Unknown Customer'}
+                      <span className="font-medium text-gray-900">
+                        {customer.customerName || 'Unknown Customer'}
                       </span>
                     </div>
                   )}
@@ -699,20 +758,93 @@ const CustomerProfile = () => {
                   
                   <div className="flex justify-between">
                     <span className="text-gray-600">Description:</span>
-                    <span className="font-medium">{selectedPayment.description || 'No description'}</span>
+                    <span className="font-medium text-gray-800">{selectedPayment.description || 'No description'}</span>
                   </div>
                 </div>
               </div>
               
-              <div className="text-center">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowViewPaymentModal(false)}
-                >
-                  Close
+              <div className="flex justify-between mt-6 pt-4 border-t border-gray-200">
+                <Button variant="outline" onClick={() => setShowViewPaymentModal(false)}>Close</Button>
+                <Button variant="outline" onClick={() => handleEditPayment(selectedPayment)}>
+                  <Edit className="w-4 h-4 mr-2" />
+                  Edit Payment
                 </Button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Payment Modal */}
+      {selectedPayment && (
+        <div className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 ${showEditPaymentModal ? 'block' : 'hidden'}`}>
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <CreditCard className="w-6 h-6 text-blue-600 mr-2" />
+                  <h3 className="text-lg font-semibold text-gray-900">Edit Payment</h3>
+                </div>
+                <button
+                  onClick={() => setShowEditPaymentModal(false)}
+                  className="p-2 text-gray-400 hover:text-gray-600 rounded-lg transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+            
+            <form onSubmit={handleUpdatePayment} className="p-6 space-y-4">
+              <FormInput
+                label="Payment Number"
+                name="paymentNo"
+                value={editPaymentData.paymentNo}
+                onChange={handleEditPaymentChange}
+                disabled
+              />
+              
+              <FormInput
+                label="Date"
+                name="paymentDate"
+                type="date"
+                value={editPaymentData.paymentDate}
+                onChange={handleEditPaymentChange}
+                required
+              />
+              
+              <FormInput
+                label="Amount"
+                name="amount"
+                type="number"
+                value={editPaymentData.amount}
+                onChange={handleEditPaymentChange}
+                min="0"
+                step="0.01"
+                required
+              />
+              
+              <FormInput
+                label="Description"
+                name="description"
+                value={editPaymentData.description}
+                onChange={handleEditPaymentChange}
+                placeholder="Payment description"
+              />
+              
+              <div className="flex space-x-4 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowEditPaymentModal(false)}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" className="flex-1">
+                  Update Payment
+                </Button>
+              </div>
+            </form>
           </div>
         </div>
       )}
