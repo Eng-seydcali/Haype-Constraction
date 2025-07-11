@@ -1,26 +1,62 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Backend URL - Multiple options for different environments
-const API_BASE_URL = __DEV__ 
-  ? 'http://10.0.2.2:5000/api'  // Android emulator
-  : 'https://your-backend-url.com/api'; // Production URL
+// 🔧 IMPORTANT: Update this with your computer's IP address
+// To find your IP: Run 'ipconfig' (Windows) or 'ifconfig' (Mac/Linux)
+const YOUR_COMPUTER_IP = '192.168.1.100'; // ⚠️ CHANGE THIS TO YOUR ACTUAL IP
 
-// Alternative URLs to try
-const FALLBACK_URLS = [
-  'http://localhost:5000/api',
-  'http://127.0.0.1:5000/api',
-  'http://192.168.1.100:5000/api', // Replace with your local IP
-  'http://10.0.2.2:5000/api'
+// Backend URLs to try in order
+const API_URLS = [
+  `http://${YOUR_COMPUTER_IP}:5000/api`,  // Your computer's IP
+  'http://localhost:5000/api',            // Localhost
+  'http://127.0.0.1:5000/api',           // Loopback
+  'http://10.0.2.2:5000/api',            // Android emulator
+  'http://192.168.1.100:5000/api',       // Common local IP
+  'http://192.168.0.100:5000/api',       // Alternative local IP
 ];
+
+let workingUrl = null;
+
+// Test which URL works
+const findWorkingUrl = async () => {
+  console.log('🔍 Testing backend URLs...');
+  
+  for (const url of API_URLS) {
+    try {
+      console.log(`Testing: ${url}`);
+      const response = await axios.get(`${url.replace('/api', '')}/`, { 
+        timeout: 3000,
+        headers: { 'Accept': 'application/json' }
+      });
+      console.log(`✅ Success: ${url}`);
+      workingUrl = url;
+      return url;
+    } catch (error) {
+      console.log(`❌ Failed: ${url} - ${error.message}`);
+    }
+  }
+  
+  console.log('❌ No working URL found');
+  return API_URLS[0]; // Fallback to first URL
+};
+
+// Initialize with first URL, will be updated when working URL is found
+let API_BASE_URL = API_URLS[0];
 
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 10000, // 10 second timeout
+  timeout: 15000, // 15 second timeout
 });
+
+// Update API base URL when working URL is found
+export const updateApiBaseUrl = (url) => {
+  API_BASE_URL = url;
+  api.defaults.baseURL = url;
+  console.log(`📡 API URL updated to: ${url}`);
+};
 
 // Set auth token
 export const setAuthToken = (token) => {
@@ -49,8 +85,13 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    console.log('API Error:', error.message);
-    console.log('API URL:', error.config?.baseURL);
+    console.log('❌ API Error:', error.message);
+    console.log('📡 API URL:', error.config?.baseURL);
+    console.log('🔗 Request URL:', error.config?.url);
+    
+    if (error.code === 'ECONNABORTED') {
+      console.log('⏰ Request timeout');
+    }
     
     if (error.response?.status === 401) {
       await AsyncStorage.removeItem('authToken');
@@ -62,7 +103,25 @@ api.interceptors.response.use(
 
 // Auth API
 export const authAPI = {
-  login: (credentials) => api.post('/auth/login', credentials),
+  login: async (credentials) => {
+    // Try to find working URL first
+    if (!workingUrl) {
+      const foundUrl = await findWorkingUrl();
+      if (foundUrl !== API_BASE_URL) {
+        updateApiBaseUrl(foundUrl);
+      }
+    }
+    
+    console.log('🔐 Attempting login with URL:', api.defaults.baseURL);
+    console.log('📧 Login credentials:', { email: credentials.email });
+    
+    try {
+      return await api.post('/auth/login', credentials);
+    } catch (error) {
+      console.log('❌ Login failed:', error.response?.data || error.message);
+      throw error;
+    }
+  },
   verify: () => api.get('/auth/verify'),
 };
 
