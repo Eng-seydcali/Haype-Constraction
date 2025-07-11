@@ -17,7 +17,7 @@ const Payments = () => {
   
   const [receiveFormData, setReceiveFormData] = useState({
     customerId: '',
-    invoiceNo: '',
+    paymentNo: '',
     date: new Date().toISOString().split('T')[0],
     amount: '',
     description: ''
@@ -162,8 +162,8 @@ const Payments = () => {
       showError('Validation Error', 'Please enter a valid amount');
       return false;
     }
-    if (!receiveFormData.invoiceNo) {
-      showError('Validation Error', 'Please enter invoice number');
+    if (!receiveFormData.paymentNo) {
+      showError('Validation Error', 'Please enter payment number');
       return false;
     }
     return true;
@@ -203,7 +203,7 @@ const Payments = () => {
     try {
       const paymentData = {
         customerId: receiveFormData.customerId,
-        invoiceNo: receiveFormData.invoiceNo,
+        paymentNo: receiveFormData.paymentNo,
         amount: parseFloat(receiveFormData.amount),
         description: receiveFormData.description,
         paymentDate: receiveFormData.date
@@ -216,13 +216,13 @@ const Payments = () => {
       
       showSuccess(
         'Payment Received', 
-        `Payment of $${receiveFormData.amount} received from ${customer?.customerName} for invoice ${receiveFormData.invoiceNo}`
+        `Payment of $${receiveFormData.amount} received from ${customer?.customerName} for payment ${receiveFormData.paymentNo}`
       );
       
       setShowReceiveModal(false);
       setReceiveFormData({
         customerId: '',
-        invoiceNo: '',
+        paymentNo: '',
         date: new Date().toISOString().split('T')[0],
         amount: '',
         description: ''
@@ -259,7 +259,7 @@ const Payments = () => {
       const paymentData = {
         accountType: 'car',
         recipientId: paymentOutFormData.carId,
-        paymentNo: paymentOutFormData.paymentNo,
+        invoiceNo: paymentOutFormData.invoiceNo,
         amount: parseFloat(paymentOutFormData.amount),
         description: `${paymentOutFormData.category}: ${paymentOutFormData.description}`,
         paymentDate: paymentOutFormData.date,
@@ -285,7 +285,7 @@ const Payments = () => {
       
       showSuccess(
         'Payment Processed',
-        `Payment ${paymentOutFormData.paymentNo} of $${paymentOutFormData.amount} processed for ${selectedCar?.carName} - ${selectedCategory?.label}`
+        `Payment of $${paymentOutFormData.amount} processed for ${selectedCar?.carName} - ${selectedCategory?.label} from ${selectedMonth?.label} account`
       );
       
       setShowPaymentOutModal(false);
@@ -293,7 +293,7 @@ const Payments = () => {
         carId: '',
         category: '',
         accountMonth: accountMonths[0]?.value || '',
-        paymentNo: '',
+        invoiceNo: '',
         date: new Date().toISOString().split('T')[0],
         amount: '',
         description: ''
@@ -301,7 +301,6 @@ const Payments = () => {
       
       // Reload payments
       loadAllData();
-      generateNextPaymentNumber();
       
     } catch (error) {
       console.error('❌ Error processing payment:', error);
@@ -487,12 +486,13 @@ const Payments = () => {
               />
 
               <FormInput
-                label="Invoice No"
-                name="invoiceNo"
-                value={receiveFormData.invoiceNo}
+                label="Payment Number"
+                name="paymentNo"
+                value={receiveFormData.paymentNo || nextPaymentNumber}
                 onChange={handleReceiveChange}
-                placeholder="e.g., INV-001"
+                placeholder="e.g., PYN-0001"
                 required
+                disabled
               />
 
               <FormInput
