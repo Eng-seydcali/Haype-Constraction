@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Users, Plus, Search, Edit, Trash2, Eye, Filter } from 'lucide-react';
 import Button from '../components/Button';
 import Table from '../components/Table';
 import SearchInput from '../components/SearchInput';
+import EditEmployeeModal from '../components/EditEmployeeModal';
 import { employeesAPI } from '../services/api';
 import { useToast } from '../contexts/ToastContext';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -11,12 +12,13 @@ import Footer from '../components/Footer';
 
 const EmployeeCenter = () => {
   const { showSuccess, showError } = useToast();
-  const navigate = useNavigate();
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [filteredEmployees, setFilteredEmployees] = useState([]);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState(null);
 
   // Load employees from database
   useEffect(() => {
@@ -146,8 +148,14 @@ const EmployeeCenter = () => {
   ];
 
   const handleEdit = (id) => {
-    // For now, show alert - you can create edit pages later
-    alert(`Edit employee with ID: ${id}\n\nYou can create /employees/edit/${id} page to handle editing.`);
+    setSelectedEmployeeId(id);
+    setShowEditModal(true);
+  };
+
+  const handleEditSave = () => {
+    loadEmployees(); // Refresh the employees list
+    setShowEditModal(false);
+    setSelectedEmployeeId(null);
   };
 
   if (loading) {
@@ -252,6 +260,17 @@ const EmployeeCenter = () => {
           </div>
         </div>
       </div>
+
+      {/* Edit Employee Modal */}
+      <EditEmployeeModal
+        isOpen={showEditModal}
+        onClose={() => {
+          setShowEditModal(false);
+          setSelectedEmployeeId(null);
+        }}
+        employeeId={selectedEmployeeId}
+        onSave={handleEditSave}
+      />
 
 <Footer/>
 

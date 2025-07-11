@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { UserCheck, Plus, Search, Edit, Trash2, Eye, Filter } from 'lucide-react';
 import Button from '../components/Button';
 import Table from '../components/Table';
 import SearchInput from '../components/SearchInput';
+import EditCustomerModal from '../components/EditCustomerModal';
 import { customersAPI } from '../services/api';
 import { useToast } from '../contexts/ToastContext';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -11,12 +12,13 @@ import Footer from '../components/Footer';
 
 const CustomerCenter = () => {
   const { showSuccess, showError } = useToast();
-  const navigate = useNavigate();
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [paymentMethodFilter, setPaymentMethodFilter] = useState('all');
   const [filteredCustomers, setFilteredCustomers] = useState([]);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedCustomerId, setSelectedCustomerId] = useState(null);
 
   // Load customers from database
   useEffect(() => {
@@ -144,8 +146,14 @@ const CustomerCenter = () => {
   ];
 
   const handleEdit = (id) => {
-    // For now, show alert - you can create edit pages later
-    alert(`Edit customer with ID: ${id}\n\nYou can create /customers/edit/${id} page to handle editing.`);
+    setSelectedCustomerId(id);
+    setShowEditModal(true);
+  };
+
+  const handleEditSave = () => {
+    loadCustomers(); // Refresh the customers list
+    setShowEditModal(false);
+    setSelectedCustomerId(null);
   };
 
   if (loading) {
@@ -270,6 +278,17 @@ const CustomerCenter = () => {
           </div>
         </div>
       </div>
+
+      {/* Edit Customer Modal */}
+      <EditCustomerModal
+        isOpen={showEditModal}
+        onClose={() => {
+          setShowEditModal(false);
+          setSelectedCustomerId(null);
+        }}
+        customerId={selectedCustomerId}
+        onSave={handleEditSave}
+      />
 
 <Footer/>
 

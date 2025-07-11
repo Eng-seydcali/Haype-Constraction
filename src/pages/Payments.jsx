@@ -296,13 +296,12 @@ const Payments = () => {
         console.log(`✅ Car ${selectedCar.carName} left amount updated: +$${paymentOutFormData.amount} = $${newCarLeft}`);
       }
       
-      const selectedCar = cars.find(car => car._id === paymentOutFormData.carId);
       const selectedCategory = categories.find(cat => cat.value === paymentOutFormData.category);
       const selectedMonth = accountMonths.find(month => month.value === paymentOutFormData.accountMonth);
       
       showSuccess(
         'Payment Processed',
-        `Payment of $${paymentOutFormData.amount} processed for ${selectedCar?.carName} - ${selectedCategory?.label} from ${selectedMonth?.label} account`
+        `Payment of $${paymentOutFormData.amount} processed for ${selectedCar.carName} - ${selectedCategory?.label} from ${selectedMonth?.label} account`
       );
       
       setShowPaymentOutModal(false);
